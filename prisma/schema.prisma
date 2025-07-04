@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Locker {
+  id         Int             @id @default(autoincrement())
+  number     Int             @unique
+  status     LockerStatus
+  deliveries DeliveryOrder[]
+}
+
+model DeliveryOrder {
+  id            Int           @id @default(autoincrement())
+  lockerId      Int
+  locker        Locker        @relation(fields: [lockerId], references: [id])
+  pickupCode    String        @unique
+  recipient     String
+  status        DeliveryStatus
+  serviceCharge Int
+  paymentStatus PaymentStatus
+  deliveredAt   DateTime
+  pickedUpAt    DateTime?
+}
+
+enum LockerStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum DeliveryStatus {
+  WAITING
+  DELIVERED
+  PICKED_UP
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+}

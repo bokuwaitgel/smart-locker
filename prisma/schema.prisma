@@ -10,21 +10,49 @@ datasource db {
 model Locker {
   id         Int             @id @default(autoincrement())
   number     Int             @unique
+  location   String
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  description String?
   status     LockerStatus
   deliveries DeliveryOrder[]
 }
 
 model DeliveryOrder {
-  id            Int           @id @default(autoincrement())
-  lockerId      Int
-  locker        Locker        @relation(fields: [lockerId], references: [id])
-  pickupCode    String        @unique
-  recipient     String
-  status        DeliveryStatus
-  serviceCharge Int
-  paymentStatus PaymentStatus
-  deliveredAt   DateTime
-  pickedUpAt    DateTime?
+  id              Int           @id @default(autoincrement())
+  lockerId        Int
+  locker          Locker        @relation(fields: [lockerId], references: [id])
+  pickupCode      String        @unique
+  recipient       String
+  status          DeliveryStatus
+  serviceCharge   Int
+  paymentStatus   PaymentStatus
+  pickupMobile    String
+  deliveryMobile  String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deliveredAt     DateTime
+  pickedUpAt      DateTime?
+}
+
+model QPayToken {
+  id               Int       @id @default(autoincrement())
+  paymentId        String    @default("")
+  accessToken      String  
+  refreshToken     String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+  expiresIn        Int
+  refreshExpiresIn Int
+}
+
+model SMS {
+  id          Int       @id @default(autoincrement())
+  phoneNumber String
+  message     String
+  status      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 enum LockerStatus {

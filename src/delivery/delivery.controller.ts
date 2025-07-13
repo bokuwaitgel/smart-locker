@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 import { StartDeliveryDto } from './dto/start-delivery.dto';
 import { PickupRequestDto } from './dto/pickup-request.dto';
@@ -10,22 +10,27 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 export class DeliveryController {
   constructor(private readonly deliveryService: DeliveryService) {}
 
+  @Get('locker-status')
+  @ApiOperation({ summary: 'Get locker status by container number' })
+  @ApiResponse({ status: 200, description: 'Locker status retrieved successfully' })
+  async getLockerStatus(@Body('containerNumber') containerNumber: string) {
+    return this.deliveryService.getLockerStatus(containerNumber);
+  }
+
   @Post('start')
-  @ApiOperation({ summary: 'Start a delivery order (drop-off)' })
-  @ApiResponse({ status: 201, description: 'Locker assigned and pickup code generated.' })
-  startDelivery(@Body() dto: StartDeliveryDto) {
-    return this.deliveryService.startDelivery(dto);
+  @ApiOperation({ summary: 'Start a new delivery' })
+  @ApiResponse({ status: 201, description: 'Delivery started successfully' })
+  async startDelivery(@Body() data: StartDeliveryDto) {
+    return this.deliveryService.startDelivery(data);
   }
 
   @Post('pickup-request')
-  @ApiOperation({ summary: 'Request to pickup a delivery (enter code)' })
-  pickupRequest(@Body() dto: PickupRequestDto) {
-    return this.deliveryService.pickupRequest(dto);
+  @ApiOperation({ summary: 'Request pickup for a delivery' })
+  @ApiResponse({ status: 200, description: 'Pickup request processed successfully' })
+  async requestPickup(@Body() data: PickupRequestDto) {
+    return this.deliveryService.requestPickup(data);
   }
+  
 
-  @Post('unlock')
-  @ApiOperation({ summary: 'Unlock after payment' })
-  unlock(@Body() dto: UnlockDto) {
-    return this.deliveryService.unlockLocker(dto);
-  }
+  
 }

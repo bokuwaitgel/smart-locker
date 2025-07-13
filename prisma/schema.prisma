@@ -7,32 +7,54 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Locker {
-  id         Int             @id @default(autoincrement())
-  number     Int             @unique
-  location   String
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
+model Container {
+  id          Int       @id @default(autoincrement())
+  number      String    @unique
+  location    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   description String?
-  status     LockerStatus
-  deliveries DeliveryOrder[]
+  Lockers     Locker[]
+}
+
+model Locker {
+  id           Int             @id @default(autoincrement())
+  lockerNumber String          @unique
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  description  String?
+  status       LockerStatus
+  deliveries   DeliveryOrder[]
+  Container    Container[]
 }
 
 model DeliveryOrder {
-  id              Int           @id @default(autoincrement())
+  id              Int              @id @default(autoincrement())
+  containerNumber String
   lockerId        Int
   locker          Locker        @relation(fields: [lockerId], references: [id])
   pickupCode      String        @unique
-  recipient       String
   status          DeliveryStatus
-  serviceCharge   Int
   paymentStatus   PaymentStatus
-  pickupMobile    String
-  deliveryMobile  String
+  pickupMobile    String         
+  deliveryMobile  String        @default("")
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-  deliveredAt     DateTime
+  deliveredAt     DateTime?
   pickedUpAt      DateTime?
+
+  Payment Payment[]
+}
+
+model Payment {
+  id          Int       @id @default(autoincrement())
+  amount      Float
+  status      PaymentStatus
+  deliveryId  Int       @unique
+  delivery    DeliveryOrder @relation(fields: [deliveryId], references: [id])
+  InvoiceId   String?    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model QPayToken {
@@ -55,14 +77,27 @@ model SMS {
   updatedAt   DateTime  @updatedAt
 }
 
+model User {
+  id          Int       @id @default(autoincrement())
+  email       String    @unique
+  password    String
+  name        String?
+  phoneNumber String?
+  role        String    @default("ADMIN") // USER, ADMIN
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 enum LockerStatus {
   AVAILABLE
   OCCUPIED
+  PENDING
   MAINTENANCE
 }
 
 enum DeliveryStatus {
   WAITING
+  PENDING
   DELIVERED
   PICKED_UP
   CANCELLED

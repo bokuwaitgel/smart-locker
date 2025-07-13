@@ -8,8 +8,8 @@ export class LockerController {
   constructor(private readonly lockerService: LockerService) {}
 
   @Get('status')
-  @ApiOperation({ summary: 'Get locker status by lockerId (or all if blank)' })
-  getStatus(@Query('lockerId') lockerId?: number) {
-    return this.lockerService.getStatus(lockerId);
+  @ApiOperation({ summary: 'Get locker status by lockerNumber (or all if blank)' })
+  getStatus(@Query('lockerNumber') lockerNumber?: string) {
+    return this.lockerService.getStatus(lockerNumber);
   }
 }

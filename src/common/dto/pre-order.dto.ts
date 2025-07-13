@@ -1,21 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
 
-export class StartDeliveryDto {
+export class PreOrderDto {
   @ApiProperty()
   @IsNotEmpty()
-  lockerId: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  containerNumber: string;
+  readonly firstName: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  deliveryMobile: string;
+  readonly lastName: string;
 
   @ApiProperty()
-  @IsNotEmpty() 
-  pickupMobile: string;
+  @IsNotEmpty()
+  readonly phoneNumber: string;
 
+  @ApiProperty()
+  @IsNotEmpty()
+  readonly email: string;
 }

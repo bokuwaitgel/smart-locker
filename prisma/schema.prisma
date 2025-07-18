@@ -9,8 +9,10 @@ datasource db {
 
 model Container {
   id          Int       @id @default(autoincrement())
-  number      String    @unique
-  location    String
+  boardId     String    @unique
+  path        String    @default("")
+  baudRate    Int       @default(9600)
+  location    String    @default("")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   description String?
@@ -87,6 +89,7 @@ model User {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
 
 enum LockerStatus {
   AVAILABLE

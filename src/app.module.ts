@@ -8,10 +8,11 @@ import { ContainerModule } from './container/container.module';
 import { SmsService } from './sms/sms.service';
 import { SmsController } from './sms/sms.controller';
 import { SmsModule } from './sms/sms.module';
+import { SerialModule } from './serial/serial.module';
 
 @Module({
   imports: [
-    LockerModule, DeliveryModule, PaymentModule, PrismaModule, AuthModule, ContainerModule, SmsModule],
+    LockerModule, DeliveryModule, PaymentModule, PrismaModule, AuthModule, ContainerModule, SmsModule, SerialModule],
   providers: [SmsService],
   controllers: [SmsController],
 })

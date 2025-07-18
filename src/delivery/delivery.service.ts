@@ -12,7 +12,7 @@ export class DeliveryService {
 
   async getLockerStatus(containerNumber: string) {
     const container = await this.prisma.container.findUnique({
-      where: { number: containerNumber },
+      where: { boardId: containerNumber },
       include: { Lockers: true },
     });
     if (!container) {
@@ -136,7 +136,7 @@ export class DeliveryService {
     });
 
     const container = await this.prisma.container.findUnique({
-      where: { number: data.containerNumber },
+      where: { boardId: data.containerNumber },
     });
 
     // Send SMS notification

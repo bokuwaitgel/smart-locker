@@ -1,7 +1,8 @@
-import { Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { SmsService } from './sms.service';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { SmsDto } from './sms.dto';
 
 @Controller('sms')
 export class SmsController {
@@ -9,7 +10,9 @@ export class SmsController {
     
     @ApiTags('SMS')
     @Post('send')
-    async sendSMS(phone: string, message: string) {
-        return this.smsService.sendSMS(phone, message);
+    @ApiOperation({ summary: 'Send an SMS' })
+    @ApiResponse({ status: 200, description: 'SMS sent successfully' })
+    async sendSMS(@Body() data: SmsDto)  {
+        return this.smsService.sendSMS(data.phone, data.message);
     }
 }

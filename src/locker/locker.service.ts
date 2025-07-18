@@ -8,7 +8,6 @@ export class LockerService {
   constructor(private prisma: PrismaService) {}
 
   // Add methods for locker management here
-
   async createLocker(data: CreateLockerDto) {
     const result = await this.prisma.locker.create({
       data: {

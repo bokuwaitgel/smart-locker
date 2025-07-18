@@ -11,7 +11,9 @@ export class ContainerService {
   async createContainer(data: CreateContainerDto) {
     const result = await this.prisma.container.create({
         data: {
-            number: data.number,
+            boardId: data.boardId,
+            path: data.path,
+            baudRate: data.baudRate,
             location: data.location,
             description: data.description,
             },

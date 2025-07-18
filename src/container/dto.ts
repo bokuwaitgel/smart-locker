@@ -4,7 +4,17 @@ import { IsNotEmpty } from 'class-validator';
 export class CreateContainerDto {
   @ApiProperty()
   @IsNotEmpty()
-  number: string;
+  boardId: string;
+
+
+
+  @ApiProperty()
+  @IsNotEmpty()
+  path: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  baudRate: number;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -17,7 +27,15 @@ export class CreateContainerDto {
 export class UpdateContainerDto {
   @ApiProperty()
   @IsNotEmpty()
-  number: string;
+  boardId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  path: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  baudRate: number;
 
   @ApiProperty()
   @IsNotEmpty()

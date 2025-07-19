@@ -27,12 +27,14 @@ model Locker {
   description  String?
   status       LockerStatus
   deliveries   DeliveryOrder[]
-  Container    Container[]
+  boardId      String
+  Container    Container       @relation(fields: [boardId], references: [boardId])
+
 }
 
 model DeliveryOrder {
   id              Int              @id @default(autoincrement())
-  containerNumber String
+  boardId         String
   lockerId        Int
   locker          Locker        @relation(fields: [lockerId], references: [id])
   pickupCode      String        @unique

@@ -15,7 +15,7 @@ export class LockerService {
         description: data.description,
         status: 'PENDING',
         Container: {
-          connect: { id: Number(data.containerId) },
+          connect: { boardId: data.boardId },
         },
       },
     });
@@ -39,8 +39,20 @@ export class LockerService {
 
   }
 
-  async updateLocker(id: number, data: any) {
-    return this.prisma.locker.update({ where: { id }, data });
+  async updateLocker(id: number, data: UpdateLockerDto) {
+    return {
+      success: true,
+      type: 'success',
+      message: 'Locker updated successfully',
+      statusCode: HttpStatus.OK,
+      data: await this.prisma.locker.update({
+        where: { id },
+        data: {
+          ...data,
+          status: data.status as any, // Cast to the correct enum type if necessary
+        },
+      }),
+    }
   }
 
   async deleteLocker(id: number) {
@@ -90,7 +102,7 @@ export class LockerService {
       type: 'success',
       message: 'All lockers status retrieved successfully',
       statusCode: HttpStatus.OK,
-      data: lockers.map(locker => ({ id: locker.id, status: locker.status })),
+      data: lockers.map(locker => ({ id: locker.id, lockerNumber: locker.lockerNumber, status: locker.status })),
     };
   }
 }

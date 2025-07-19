@@ -1,20 +1,21 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DeliveryService } from './delivery.service';
 import { StartDeliveryDto } from './dto/start-delivery.dto';
 import { PickupRequestDto } from './dto/pickup-request.dto';
 import { UnlockDto } from './dto/unlock.dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
 
 @ApiTags('delivery')
 @Controller('delivery')
 export class DeliveryController {
   constructor(private readonly deliveryService: DeliveryService) {}
 
-  @Get('locker-status')
-  @ApiOperation({ summary: 'Get locker status by container number' })
+  @Get('locker-status/:boardId')
+  @ApiOperation({ summary: 'Get locker status by board ID' })
   @ApiResponse({ status: 200, description: 'Locker status retrieved successfully' })
-  async getLockerStatus(@Body('containerNumber') containerNumber: string) {
-    return this.deliveryService.getLockerStatus(containerNumber);
+  async getLockerStatus(@Param('boardId') boardId: string) {
+    return this.deliveryService.getLockerStatus(boardId);
   }
 
   @Post('start')
@@ -30,7 +31,12 @@ export class DeliveryController {
   async requestPickup(@Body() data: PickupRequestDto) {
     return this.deliveryService.requestPickup(data);
   }
-  
 
-  
+  @Get('history/:boardId')
+  @ApiOperation({ summary: 'Get delivery history by ID' })
+  @ApiResponse({ status: 200, description: 'Delivery history retrieved successfully' })
+  async getDeliveryHistory(@Param('boardId') boardId: string) {
+    return this.deliveryService.getDeliveryHistory(boardId);
+  }
+
 }

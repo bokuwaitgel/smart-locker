@@ -10,9 +10,9 @@ import { SmsService } from '../sms/sms.service';
 export class DeliveryService {
   constructor(private prisma: PrismaService, private smsService: SmsService) {}
 
-  async getLockerStatus(containerNumber: string) {
+  async getLockerStatus(boardId: string) {
     const container = await this.prisma.container.findUnique({
-      where: { boardId: containerNumber },
+      where: { boardId: boardId },
       include: { Lockers: true },
     });
     if (!container) {
@@ -37,14 +37,14 @@ export class DeliveryService {
       throw new NotFoundException('Delivery order not found');
     }
     //check payment status
-    if (delivery.paymentStatus !== 'PAID') {
-      return {
-        success: false,
-        type: 'error',
-        message: 'Payment not completed',
-        statusCode: HttpStatus.FORBIDDEN,
-      };
-    }
+    // if (delivery.paymentStatus !== 'PAID') {
+    //   return {
+    //     success: false,
+    //     type: 'error',
+    //     message: 'Payment not completed',
+    //     statusCode: HttpStatus.FORBIDDEN,
+    //   };
+    // }
 
     if (delivery.status !== 'WAITING') {
       return {
@@ -111,7 +111,7 @@ export class DeliveryService {
     const delivery = await this.prisma.deliveryOrder.create({
       data: {
         lockerId: data.lockerId,
-        containerNumber: data.containerNumber,
+        boardId: data.boardId,
         pickupCode: code,
         deliveryMobile: data.deliveryMobile,
         pickupMobile: data.pickupMobile,
@@ -136,7 +136,7 @@ export class DeliveryService {
     });
 
     const container = await this.prisma.container.findUnique({
-      where: { boardId: data.containerNumber },
+      where: { boardId: data.boardId },
     });
 
     // Send SMS notification
@@ -150,6 +150,65 @@ export class DeliveryService {
       data: delivery,
     };
   }
+
+  async getDeliveryHistory(boardId: string) {
+    const deliveries = await this.prisma.deliveryOrder.findMany({
+      where: { boardId: boardId },
+      include: {
+        locker: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!deliveries || deliveries.length === 0) {
+      return {
+        success: false,
+        type: 'error',
+        message: 'No delivery history found',
+        statusCode: HttpStatus.NOT_FOUND,
+      };
+    }
+
+    return {
+      success: true,
+      type: 'success',
+      message: 'Delivery history retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data: deliveries,
+    };
+  }
+  
+  async getDeliveryHistoryByLockerId(lockerId: number, boardId: string) {
+    const deliveries = await this.prisma.deliveryOrder.findMany({
+      where: { lockerId: lockerId, boardId: boardId },
+      include: {
+        locker: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!deliveries || deliveries.length === 0) {
+      return {
+        success: false,
+        type: 'error',
+        message: 'No delivery history found for this locker',
+        statusCode: HttpStatus.NOT_FOUND,
+      };
+    }
+
+    return {
+      success: true,
+      type: 'success',
+      message: 'Delivery history retrieved successfully',
+      statusCode: HttpStatus.OK,
+      data: deliveries,
+    };
+  }
+
 
   
 }

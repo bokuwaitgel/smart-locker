@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { LockerService } from './locker.service';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
-import { CreateLockerDto } from './dto';
+import { CreateLockerDto, UpdateLockerDto } from './dto';
 @ApiTags('locker')
 @Controller('lockers')
 export class LockerController {
@@ -21,16 +21,16 @@ export class LockerController {
     return this.lockerService.createLocker(data);
   }
 
-  @Post('update')
+  @Put('update/:id')
   @ApiOperation({ summary: 'Update a locker' })
-  async updateLocker(@Body() data: CreateLockerDto) {
-    return this.lockerService.updateLocker(Number(data.lockerNumber), data);
+  async updateLocker(@Param('id') id: string, @Body() data: UpdateLockerDto) {
+    return this.lockerService.updateLocker(Number(id), data);
   }
 
-  @Post('delete')
+  @Delete('delete/:id')
   @ApiOperation({ summary: 'Delete a locker' })
-  async deleteLocker(@Body('lockerNumber') lockerNumber: string) {
-    return this.lockerService.deleteLocker(Number(lockerNumber));
-  } 
+  async deleteLocker(@Param('id') id: string) {
+    return this.lockerService.deleteLocker(Number(id));
+  }
 
 }

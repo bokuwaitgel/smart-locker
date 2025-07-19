@@ -4,7 +4,7 @@ import { IsNotEmpty } from 'class-validator';
 export class CreateLockerDto {
     @ApiProperty()
     @IsNotEmpty()
-    containerId: string;
+    boardId: string;
 
     @ApiProperty()
     @IsNotEmpty()
@@ -17,4 +17,7 @@ export class CreateLockerDto {
 export class UpdateLockerDto {
     @ApiProperty({ required: false })
     description?: string;
+    @ApiProperty()
+    @IsNotEmpty()
+    status: string;
 }

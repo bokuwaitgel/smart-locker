@@ -52,8 +52,9 @@ export class ContainerService {
   }
 
   async getContainerById(id: number) {
+    console.log('Fetching container with ID:', id);
     const container = await this.prisma.container.findUnique({
-      where: { id },
+      where: { id: Number(id) },
     });
 
     if (!container) {
@@ -76,7 +77,7 @@ export class ContainerService {
 
   async updateContainer(id: number, data: UpdateContainerDto) {
     const result = await this.prisma.container.update({
-      where: { id },
+      where: { id: Number(id) },
       data,
     });
 
@@ -119,9 +120,9 @@ export class ContainerService {
     };
   }
 
-  async getAllLockersInContainer(containerId: number) {
+  async getAllLockersInContainer(boardId: string) {
     const container = await this.prisma.container.findUnique({
-      where: { id: containerId },
+      where: { boardId },
       include: { Lockers: true },
     }); 
 
@@ -137,14 +138,6 @@ export class ContainerService {
 
     const lockers = container.Lockers;
 
-    if (!lockers || lockers.length === 0) {
-      return {
-        success: false,
-        type: 'error',
-        message: 'No lockers found in this container',
-        statusCode: HttpStatus.NOT_FOUND,
-      };
-    }
 
     return {
       success: true,

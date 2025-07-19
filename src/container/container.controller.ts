@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Put } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ContainerService } from './container.service';
 
@@ -13,6 +13,7 @@ export class ContainerController {
     @ApiOperation({ summary: 'Create a new container' })
     @ApiResponse({ status: 201, description: 'Container created successfully' })
     async createContainer(@Body() data: CreateContainerDto) {
+        console.log('Creating container with data:', data);
         return this.containerService.createContainer(data);
     }
 
@@ -26,14 +27,14 @@ export class ContainerController {
     @Get(':id')
     @ApiOperation({ summary: 'Get container by ID' })
     @ApiResponse({ status: 200, description: 'Container retrieved successfully' })
-    async getContainerById(@Body('id') id: number) {
+    async getContainerById(@Param('id') id: number) {
         return this.containerService.getContainerById(id);
     }
 
-    @Post('update/:id')
+    @Put('update/:id')
     @ApiOperation({ summary: 'Update a container' })
     @ApiResponse({ status: 200, description: 'Container updated successfully' })
-    async updateContainer(@Body('id') id: number, @Body() data: UpdateContainerDto) {
+    async updateContainer(@Param('id') id: number, @Body() data: UpdateContainerDto) {
         return this.containerService.updateContainer(id, data);
     }
 
@@ -44,10 +45,10 @@ export class ContainerController {
         return this.containerService.deleteContainer(id);
     }
 
-    @Post('lockers')
+    @Get('lockers/:boardId')
     @ApiOperation({ summary: 'Get all lockers in a container' })
     @ApiResponse({ status: 200, description: 'Lockers retrieved successfully' })
-    async getLockersInContainer(@Body('containerNumber') containerNumber: string) {
-        return this.containerService.getAllLockersInContainer(Number(containerNumber));
+    async getLockersInContainer(@Param('boardId') boardId: string) {
+        return this.containerService.getAllLockersInContainer(boardId);
     }
 }

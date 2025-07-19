@@ -8,7 +8,7 @@ export class StartDeliveryDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  containerNumber: string;
+  boardId: string;
 
   @ApiProperty()
   @IsNotEmpty()

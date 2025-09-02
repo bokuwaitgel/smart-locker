@@ -45,7 +45,7 @@ export class SmsService {
   }
 
 
-  async sendPickupCode(phone: string, lockerLocation: string, code: string) {
+  async sendPickupCode(phone: string, lockerLocation: string, code: string, deliveryId: number) {
     const message = `Таны илгээмж бэлэн боллоо!\nБайршил: ${lockerLocation}\nКод: ${code}`;
     const result =  await this.client.messages.create({
       body: message,
@@ -67,6 +67,12 @@ export class SmsService {
         message: 'Failed to send SMS',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       };
+    }
+    if (deliveryId) {
+      await this.prisma.deliveryOrder.update({
+        where: { id: deliveryId },
+        data: { isSendSMS: true },
+      });
     }
 
     return {

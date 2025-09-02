@@ -4,7 +4,7 @@ import { IsNotEmpty } from 'class-validator';
 export class StartDeliveryDto {
   @ApiProperty()
   @IsNotEmpty()
-  lockerId: number;
+  lockerId: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -18,4 +18,9 @@ export class StartDeliveryDto {
   @IsNotEmpty() 
   pickupMobile: string;
 
+}
+
+export class PickupRequestDto {
+  @ApiProperty({ example: 'ABCD1234' })
+  pickupCode: string;
 }

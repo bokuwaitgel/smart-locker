@@ -1,14 +1,14 @@
 import { Injectable, ForbiddenException, NotFoundException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { StartDeliveryDto } from './dto/start-delivery.dto';
-import { PickupRequestDto } from './dto/pickup-request.dto';
-import { UnlockDto } from './dto/unlock.dto';
+import { StartDeliveryDto, PickupRequestDto } from './delivery.dto';
 import { randomBytes } from 'crypto';
 import { SmsService } from '../sms/sms.service';
+import { PaymentService } from 'src/payment/payment.service';
+import { stat } from 'fs';
 
 @Injectable()
 export class DeliveryService {
-  constructor(private prisma: PrismaService, private smsService: SmsService) {}
+  constructor(private prisma: PrismaService, private smsService: SmsService, private paymentService: PaymentService) {}
 
   async getLockerStatus(boardId: string) {
     const container = await this.prisma.container.findUnique({
@@ -34,7 +34,12 @@ export class DeliveryService {
     });
 
     if (!delivery) {
-      throw new NotFoundException('Delivery order not found');
+      return {
+        success: false,
+        type: 'error',
+        message: 'Delivery order not found check pickup code',
+        statusCode: HttpStatus.NOT_FOUND,
+      };
     }
     //check payment status
     // if (delivery.paymentStatus !== 'PAID') {
@@ -54,6 +59,48 @@ export class DeliveryService {
         statusCode: HttpStatus.FORBIDDEN,
       };
     }
+
+    // check payment
+    if (delivery.paymentStatus !== 'PAID') {
+      //find last payment
+      const lastPayment = await this.prisma.payment.findFirst({
+        where: { deliveryId: delivery.id },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      // here should be calculate price
+      const amount = 100;
+
+      try {
+        const payment = await this.paymentService.createInvoice({
+          amount,
+          deliveryId: delivery.id,
+        });
+
+        if (!payment) {
+          return {
+            success: false,
+            type: 'error',
+            message: 'Failed to create payment',
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          };
+        }
+
+        return payment
+
+      } catch (error) {
+
+        console.error(error);
+
+        return {
+          success: false,
+          type: 'error',
+          message: 'Failed to create payment',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        };
+      }
+    }
+
     // Update delivery status to PICKED_UP
     const updatedDelivery = await this.prisma.deliveryOrder.update({
       where: { pickupCode: data.pickupCode },
@@ -74,17 +121,9 @@ export class DeliveryService {
 
     // Update locker status to AVAILABLE
     await this.prisma.locker.update({
-      where: { id: updatedDelivery.lockerId },
+      where: { id: Number(updatedDelivery.lockerId) },
       data: { status: 'AVAILABLE' },
     });
-
-    // Send SMS notification
-    if (updatedDelivery.deliveryMobile) {
-      await this.smsService.sendSMS(
-        updatedDelivery.deliveryMobile,
-        `Таны илгээмжийг амжилттай хүлээн авлаа! Код: ${data.pickupCode}`
-      );
-    }
 
     return {
       success: true,
@@ -93,27 +132,67 @@ export class DeliveryService {
     };
   }
 
-  async startDelivery(data: StartDeliveryDto) {
-    const locker = await this.prisma.locker.findUnique({
-      where: { id: data.lockerId },
+  async checkPayment(data: PickupRequestDto) {
+    const delivery = await this.prisma.deliveryOrder.findUnique({
+      where: { pickupCode: data.pickupCode },
     });
 
-    if (!locker || locker.status !== 'AVAILABLE') {
+    if (!delivery) {
       return {
         success: false,
         type: 'error',
-        message: 'Locker not available or does not exist',
+        message: 'Delivery order not found',
+        statusCode: HttpStatus.NOT_FOUND,
+      };
+    }
+
+    if (delivery.paymentStatus !== 'PAID') {
+      return {
+        success: false,
+        type: 'error',
+        message: 'Payment not completed',
+        statusCode: HttpStatus.FORBIDDEN,
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Payment status retrieved successfully',
+      data: delivery.paymentStatus,
+      statusCode: HttpStatus.OK,
+    };
+  }
+
+
+  async startDelivery(data: StartDeliveryDto) {
+    const locker = await this.prisma.locker.findUnique({
+      where: { id: Number(data.lockerId) },
+    });
+
+    if (!locker) {
+      return {
+        success: false,
+        type: 'error',
+        message: 'Locker not available',
         statusCode: HttpStatus.NOT_FOUND,
       }
     }
 
-    const code = randomBytes(6).toString('hex').toUpperCase();
+    if (locker.status !== 'AVAILABLE') {
+      return {
+        success: false,
+        type: 'error',
+        message: 'Locker not available',
+        statusCode: HttpStatus.NOT_FOUND,
+      };
+    }
+
+    const code = randomBytes(8).toString('hex').toUpperCase();
     const delivery = await this.prisma.deliveryOrder.create({
       data: {
         lockerId: data.lockerId,
         boardId: data.boardId,
         pickupCode: code,
-        deliveryMobile: data.deliveryMobile,
         pickupMobile: data.pickupMobile,
         status: 'WAITING',
         paymentStatus: 'UNPAID',
@@ -131,7 +210,7 @@ export class DeliveryService {
 
     // Update locker status to PENDING
     await this.prisma.locker.update({
-      where: { id: data.lockerId },
+      where: { id: Number(data.lockerId) },
       data: { status: 'PENDING' },
     });
 
@@ -140,72 +219,12 @@ export class DeliveryService {
     });
 
     // Send SMS notification
-    await this.smsService.sendPickupCode(data.pickupMobile, container?.location ? container.location : '', code);
-    await this.smsService.sendDeliveryCode(data.deliveryMobile, code);
-
+    await this.smsService.sendPickupCode(data.pickupMobile, container?.location ? container.location : '', code, delivery.id);
 
     return {
       success: true,
       message: 'Delivery started successfully',
       data: delivery,
-    };
-  }
-
-  async getDeliveryHistory(boardId: string) {
-    const deliveries = await this.prisma.deliveryOrder.findMany({
-      where: { boardId: boardId },
-      include: {
-        locker: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    if (!deliveries || deliveries.length === 0) {
-      return {
-        success: false,
-        type: 'error',
-        message: 'No delivery history found',
-        statusCode: HttpStatus.NOT_FOUND,
-      };
-    }
-
-    return {
-      success: true,
-      type: 'success',
-      message: 'Delivery history retrieved successfully',
-      statusCode: HttpStatus.OK,
-      data: deliveries,
-    };
-  }
-  
-  async getDeliveryHistoryByLockerId(lockerId: number, boardId: string) {
-    const deliveries = await this.prisma.deliveryOrder.findMany({
-      where: { lockerId: lockerId, boardId: boardId },
-      include: {
-        locker: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    if (!deliveries || deliveries.length === 0) {
-      return {
-        success: false,
-        type: 'error',
-        message: 'No delivery history found for this locker',
-        statusCode: HttpStatus.NOT_FOUND,
-      };
-    }
-
-    return {
-      success: true,
-      type: 'success',
-      message: 'Delivery history retrieved successfully',
-      statusCode: HttpStatus.OK,
-      data: deliveries,
     };
   }
 

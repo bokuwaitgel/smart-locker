@@ -10,9 +10,8 @@ datasource db {
 model Container {
   id          Int       @id @default(autoincrement())
   boardId     String    @unique
-  path        String    @default("")
-  baudRate    Int       @default(9600)
   location    String    @default("")
+  status      ContainerStatus   @default(INACTIVE)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   description String?
@@ -25,40 +24,36 @@ model Locker {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   description  String?
-  status       LockerStatus
-  deliveries   DeliveryOrder[]
+  status       LockerStatus    @default(PENDING)
   boardId      String
   Container    Container       @relation(fields: [boardId], references: [boardId])
-
 }
 
 model DeliveryOrder {
-  id              Int              @id @default(autoincrement())
+  id              Int               @id @default(autoincrement())
   boardId         String
-  lockerId        Int
-  locker          Locker        @relation(fields: [lockerId], references: [id])
-  pickupCode      String        @unique
+  lockerId        String
+  pickupCode      String            @unique
   status          DeliveryStatus
   paymentStatus   PaymentStatus
-  pickupMobile    String         
-  deliveryMobile  String        @default("")
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  pickupMobile    String
+  isSendSMS       Boolean           @default(false)         
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
   deliveredAt     DateTime?
   pickedUpAt      DateTime?
-
   Payment Payment[]
 }
 
 model Payment {
-  id          Int       @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   amount      Float
   status      PaymentStatus
-  deliveryId  Int       @unique
+  deliveryId  Int           
   delivery    DeliveryOrder @relation(fields: [deliveryId], references: [id])
-  InvoiceId   String?    @unique
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  InvoiceId   String?       @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }
 
 model QPayToken {
@@ -87,11 +82,17 @@ model User {
   password    String
   name        String?
   phoneNumber String?
-  role        String    @default("ADMIN") // USER, ADMIN
+  role        UserRole  @default(USER)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
+enum ContainerStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  UNDER_REPAIR
+}
 
 enum LockerStatus {
   AVAILABLE
@@ -112,4 +113,9 @@ enum PaymentStatus {
   UNPAID
   PAID
   FAILED
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }

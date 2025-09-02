@@ -1,6 +1,8 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { LockerStatus } from '@prisma/client';
+
 import { CreateLockerDto, UpdateLockerDto } from './dto';
 
 @Injectable()
@@ -40,6 +42,7 @@ export class LockerService {
   }
 
   async updateLocker(id: number, data: UpdateLockerDto) {
+    console.log( LockerStatus)
     return {
       success: true,
       type: 'success',
@@ -48,8 +51,7 @@ export class LockerService {
       data: await this.prisma.locker.update({
         where: { id },
         data: {
-          ...data,
-          status: data.status as any, // Cast to the correct enum type if necessary
+          status: LockerStatus[data.status]
         },
       }),
     }

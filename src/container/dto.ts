@@ -6,16 +6,6 @@ export class CreateContainerDto {
   @IsNotEmpty()
   boardId: string;
 
-
-
-  @ApiProperty()
-  @IsNotEmpty()
-  path: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  baudRate: number;
-
   @ApiProperty()
   @IsNotEmpty()
   location: string;
@@ -25,14 +15,6 @@ export class CreateContainerDto {
 }
 
 export class UpdateContainerDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  boardId: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  path: string;
-
   @ApiProperty()
   @IsNotEmpty()
   baudRate: number;

@@ -1,10 +1,7 @@
 import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DeliveryService } from './delivery.service';
-import { StartDeliveryDto } from './dto/start-delivery.dto';
-import { PickupRequestDto } from './dto/pickup-request.dto';
-import { UnlockDto } from './dto/unlock.dto';
-
+import { StartDeliveryDto, PickupRequestDto } from './delivery.dto';
 
 @ApiTags('delivery')
 @Controller('delivery')
@@ -32,11 +29,5 @@ export class DeliveryController {
     return this.deliveryService.requestPickup(data);
   }
 
-  @Get('history/:boardId')
-  @ApiOperation({ summary: 'Get delivery history by ID' })
-  @ApiResponse({ status: 200, description: 'Delivery history retrieved successfully' })
-  async getDeliveryHistory(@Param('boardId') boardId: string) {
-    return this.deliveryService.getDeliveryHistory(boardId);
-  }
 
 }

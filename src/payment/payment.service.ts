@@ -141,6 +141,7 @@ export class PaymentService {
               InvoiceId: response.data.invoice_id,
             },
           });
+
           return {
             status: true,
             type: 'success',
@@ -270,13 +271,6 @@ export class PaymentService {
               delivery.pickupMobile,
               `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`
             );
-
-            if (delivery.deliveryMobile) {
-              await this.smsService.sendDeliveryNotification(
-                delivery.deliveryMobile,
-                `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`
-              );
-            }
 
           }
 

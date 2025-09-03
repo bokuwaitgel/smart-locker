@@ -8,83 +8,108 @@ datasource db {
 }
 
 model Container {
-  id          Int       @id @default(autoincrement())
-  boardId     String    @unique
-  location    String    @default("")
-  status      ContainerStatus   @default(INACTIVE)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  description String?
-  Lockers     Locker[]
+  id             Int             @id @default(autoincrement())
+  boardId        String          @unique
+  location       String          @default("")
+  status         ContainerStatus @default(INACTIVE)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  description    String?
+  Lockers        Locker[]
+  DeliveryOrders DeliveryOrder[]
+
+  @@index([status])
 }
 
 model Locker {
-  id           Int             @id @default(autoincrement())
-  lockerNumber String          @unique
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  description  String?
-  status       LockerStatus    @default(PENDING)
-  boardId      String
-  Container    Container       @relation(fields: [boardId], references: [boardId])
+  id             Int             @id @default(autoincrement())
+  lockerNumber   String          @unique
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  description    String?
+  status         LockerStatus    @default(PENDING)
+  boardId        String
+  Container      Container       @relation(fields: [boardId], references: [boardId])
+  DeliveryOrders DeliveryOrder[]
+
+  @@index([boardId])
+  @@index([status])
 }
 
 model DeliveryOrder {
-  id              Int               @id @default(autoincrement())
-  boardId         String
-  lockerId        String
-  pickupCode      String            @unique
-  status          DeliveryStatus
-  paymentStatus   PaymentStatus
-  pickupMobile    String
-  isSendSMS       Boolean           @default(false)         
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  deliveredAt     DateTime?
-  pickedUpAt      DateTime?
-  Payment Payment[]
+  id            Int            @id @default(autoincrement())
+  boardId       String
+  lockerId      String
+  pickupCode    String         @unique
+  status        DeliveryStatus
+  paymentStatus PaymentStatus
+  pickupMobile  String
+  isSendSMS     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deliveredAt   DateTime?
+  pickedUpAt    DateTime?
+  Payment       Payment[]
+  Container     Container      @relation(fields: [boardId], references: [boardId])
+  Locker        Locker         @relation(fields: [lockerId], references: [lockerNumber])
+
+  @@index([boardId])
+  @@index([status])
+  @@index([pickupCode])
 }
 
 model Payment {
-  id          Int           @id @default(autoincrement())
-  amount      Float
-  status      PaymentStatus
-  deliveryId  Int           
-  delivery    DeliveryOrder @relation(fields: [deliveryId], references: [id])
-  InvoiceId   String?       @unique
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id         Int           @id @default(autoincrement())
+  amount     Float
+  status     PaymentStatus
+  deliveryId Int
+  delivery   DeliveryOrder @relation(fields: [deliveryId], references: [id])
+  InvoiceId  String?       @unique
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  QPayToken  QPayToken?
+
+  @@index([status])
+  @@index([deliveryId])
 }
 
 model QPayToken {
-  id               Int       @id @default(autoincrement())
-  paymentId        String    @default("")
-  accessToken      String  
+  id               Int      @id @default(autoincrement())
+  paymentId        Int      @unique
+  accessToken      String
   refreshToken     String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now())
   expiresIn        Int
   refreshExpiresIn Int
+  Payment          Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
 }
 
 model SMS {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   phoneNumber String
   message     String
   status      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phoneNumber])
+  @@index([status])
 }
 
 model User {
-  id          Int       @id @default(autoincrement())
-  email       String    @unique
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
   password    String
   name        String?
-  phoneNumber String?
-  role        UserRole  @default(USER)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  phoneNumber String?  @unique
+  role        UserRole @default(USER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([role])
 }
 
 enum ContainerStatus {

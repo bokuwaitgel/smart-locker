@@ -1,149 +1,311 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-
-
-import { CreateContainerDto, UpdateContainerDto } from './dto';
+import { CreateContainerDto, UpdateContainerDto, ContainerResponseDto, ContainerStatsDto } from './dto';
+import { ContainerStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class ContainerService {
   constructor(private prisma: PrismaService) {}
 
-  async createContainer(data: CreateContainerDto) {
-    const result = await this.prisma.container.create({
+  async createContainer(data: CreateContainerDto, userRole: UserRole = UserRole.USER): Promise<any> {
+    // Check if user has permission to create containers
+    if (userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only administrators can create containers');
+    }
+
+    // Check if boardId already exists
+    const existingContainer = await this.prisma.container.findUnique({
+      where: { boardId: data.boardId },
+    });
+
+    if (existingContainer) {
+      throw new BadRequestException('Container with this boardId already exists');
+    }
+
+    try {
+      const result = await this.prisma.container.create({
         data: {
-            boardId: data.boardId,
-            location: data.location,
-            description: data.description,
-            },
-    });
-
-    if (!result) {
-        return {
-            success: false,
-            type: 'error',
-            message: 'Failed to create container',
-            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          boardId: data.boardId,
+          location: data.location,
+          description: data.description,
+          status: ContainerStatus.INACTIVE, // New containers start as inactive
+        },
+        include: {
+          Lockers: true,
+          _count: {
+            select: { Lockers: true }
+          }
         }
-    }
+      });
 
-    return {
+      return {
         success: true,
-        type: 'success',
         message: 'Container created successfully',
-        statusCode: HttpStatus.CREATED,
-        data: result,
-    };
-  }
-
-  async getAllContainers() {
-    const containers = await this.prisma.container.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return {
-      success: true,
-      type: 'success',
-      message: 'Containers retrieved successfully',
-      statusCode: HttpStatus.OK,
-      data: containers,
-    };
-  }
-
-  async getContainerById(id: number) {
-    console.log('Fetching container with ID:', id);
-    const container = await this.prisma.container.findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!container) {
-      return {
-        success: false,
-        type: 'error',
-        message: 'Container not found',
-        statusCode: HttpStatus.NOT_FOUND,
+        data: this.formatContainerResponse(result),
       };
+    } catch (error) {
+      throw new BadRequestException('Failed to create container');
+    }
+  }
+
+  async getAllContainers(userRole: UserRole = UserRole.USER): Promise<any> {
+    try {
+      const containers = await this.prisma.container.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          Lockers: true,
+          _count: {
+            select: { Lockers: true }
+          }
+        }
+      });
+
+      const formattedContainers = containers.map(container => this.formatContainerResponse(container));
+
+      return {
+        success: true,
+        message: 'Containers retrieved successfully',
+        data: formattedContainers,
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to retrieve containers');
+    }
+  }
+
+  async getContainerById(id: number): Promise<any> {
+    try {
+      const container = await this.prisma.container.findUnique({
+        where: { id },
+        include: {
+          Lockers: true,
+          _count: {
+            select: { Lockers: true }
+          }
+        }
+      });
+
+      if (!container) {
+        throw new NotFoundException('Container not found');
+      }
+
+      return {
+        success: true,
+        message: 'Container retrieved successfully',
+        data: this.formatContainerResponse(container),
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to retrieve container');
+    }
+  }
+
+  async getContainerByBoardId(boardId: string): Promise<any> {
+    try {
+      const container = await this.prisma.container.findUnique({
+        where: { boardId },
+        include: {
+          Lockers: true,
+          _count: {
+            select: { Lockers: true }
+          }
+        }
+      });
+
+      if (!container) {
+        throw new NotFoundException('Container not found');
+      }
+
+      return {
+        success: true,
+        message: 'Container retrieved successfully',
+        data: this.formatContainerResponse(container),
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to retrieve container');
+    }
+  }
+
+  async updateContainer(id: number, data: UpdateContainerDto, userRole: UserRole = UserRole.USER): Promise<any> {
+    // Check if user has permission to update containers
+    if (userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only administrators can update containers');
     }
 
-    return {
-      success: true,
-      type: 'success',
-      message: 'Container retrieved successfully',
-      statusCode: HttpStatus.OK,
-      data: container,
-    };
+    try {
+      // Check if container exists
+      const existingContainer = await this.prisma.container.findUnique({
+        where: { id },
+      });
+
+      if (!existingContainer) {
+        throw new NotFoundException('Container not found');
+      }
+
+      const result = await this.prisma.container.update({
+        where: { id },
+        data,
+        include: {
+          Lockers: true,
+          _count: {
+            select: { Lockers: true }
+          }
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Container updated successfully',
+        data: this.formatContainerResponse(result),
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to update container');
+    }
   }
 
-  async updateContainer(id: number, data: UpdateContainerDto) {
-    const result = await this.prisma.container.update({
-      where: { id: Number(id) },
-      data,
-    });
-
-    if (!result) {
-      return {
-        success: false,
-        type: 'error',
-        message: 'Failed to update container',
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      };
+  async deleteContainer(id: number, userRole: UserRole = UserRole.USER): Promise<any> {
+    // Check if user has permission to delete containers
+    if (userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only administrators can delete containers');
     }
 
-    return {
-      success: true,
-      type: 'success',
-      message: 'Container updated successfully',
-      statusCode: HttpStatus.OK,
-      data: result,
-    };
+    try {
+      // Check if container exists and has no active lockers
+      const container = await this.prisma.container.findUnique({
+        where: { id },
+        include: {
+          Lockers: {
+            where: {
+              status: {
+                not: 'PENDING'
+              }
+            }
+          }
+        }
+      });
+
+      if (!container) {
+        throw new NotFoundException('Container not found');
+      }
+
+      // Prevent deletion if container has active lockers
+      if (container.Lockers.length > 0) {
+        throw new BadRequestException('Cannot delete container with active lockers');
+      }
+
+      await this.prisma.container.delete({ where: { id } });
+
+      return {
+        success: true,
+        message: 'Container deleted successfully',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to delete container');
+    }
   }
 
-  async deleteContainer(id: number) {
-    const result = await this.prisma.container.delete({ where: { id } });
+  async getAllLockersInContainer(boardId: string): Promise<any> {
+    try {
+      const container = await this.prisma.container.findUnique({
+        where: { boardId },
+        include: {
+          Lockers: {
+            orderBy: { lockerNumber: 'asc' }
+          }
+        }
+      });
 
-    if (!result) {
+      if (!container) {
+        throw new NotFoundException('Container not found');
+      }
+
       return {
-        success: false,
-        type: 'error',
-        message: 'Failed to delete container',
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        success: true,
+        message: 'Lockers retrieved successfully',
+        data: {
+          container: this.formatContainerResponse(container),
+          lockers: container.Lockers,
+        },
       };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to retrieve lockers');
+    }
+  }
+
+  async updateContainerStatus(id: number, status: ContainerStatus, userRole: UserRole = UserRole.USER): Promise<any> {
+    // Check if user has permission to update container status
+    if (userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only administrators can update container status');
     }
 
-    return {
-      success: true,
-      type: 'success',
-      message: 'Container deleted successfully',
-      statusCode: HttpStatus.OK,
-      data: result,
-    };
-  }
+    try {
+      const result = await this.prisma.container.update({
+        where: { id },
+        data: { status },
+        include: {
+          Lockers: true,
+          _count: {
+            select: { Lockers: true }
+          }
+        }
+      });
 
-  async getAllLockersInContainer(boardId: string) {
-    const container = await this.prisma.container.findUnique({
-      where: { boardId },
-      include: { Lockers: true },
-    }); 
-
-
-    if (!container) {
       return {
-        success: false,
-        type: 'error',
-        message: 'Container not found',
-        statusCode: HttpStatus.NOT_FOUND,
+        success: true,
+        message: `Container status updated to ${status}`,
+        data: this.formatContainerResponse(result),
       };
+    } catch (error) {
+      throw new BadRequestException('Failed to update container status');
     }
-
-    const lockers = container.Lockers;
-
-
-    return {
-      success: true,
-      type: 'success',
-      message: 'Lockers retrieved successfully',
-      statusCode: HttpStatus.OK,
-      data: lockers,
-    };
   }
 
+  async getContainerStats(): Promise<ContainerStatsDto> {
+    try {
+      const [
+        totalContainers,
+        activeContainers,
+        inactiveContainers,
+        maintenanceContainers,
+        totalLockers,
+      ] = await Promise.all([
+        this.prisma.container.count(),
+        this.prisma.container.count({ where: { status: ContainerStatus.ACTIVE } }),
+        this.prisma.container.count({ where: { status: ContainerStatus.INACTIVE } }),
+        this.prisma.container.count({ where: { status: ContainerStatus.MAINTENANCE } }),
+        this.prisma.locker.count(),
+      ]);
+
+      return {
+        totalContainers,
+        activeContainers,
+        inactiveContainers,
+        maintenanceContainers,
+        totalLockers,
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to retrieve container statistics');
+    }
+  }
+
+  private formatContainerResponse(container: any): ContainerResponseDto {
+    const { _count, ...containerData } = container;
+    return {
+      ...containerData,
+      lockerCount: _count?.Lockers || 0,
+    };
+  }
 }

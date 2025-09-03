@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
-import { DeliveryService } from './delivery.service';
-import { SmsService } from 'src/sms/sms.service';
 import { DeliveryController } from './delivery.controller';
-import { SmsController } from 'src/sms/sms.controller';
-import { PaymentService } from 'src/payment/payment.service';
+import { DeliveryService } from './delivery.service';
+import { PrismaModule } from '../prisma/prisma.module';
+import { SmsModule } from '../sms/sms.module';
+import { PaymentModule } from '../payment/payment.module';
 
 @Module({
-  controllers: [DeliveryController, SmsController],
-  providers: [DeliveryService, SmsService, PaymentService],
+  imports: [PrismaModule, SmsModule, PaymentModule],
+  controllers: [DeliveryController],
+  providers: [DeliveryService],
+  exports: [DeliveryService],
 })
 export class DeliveryModule {}

@@ -1,12 +1,13 @@
 // src/sms/sms.service.ts
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Twilio } from 'twilio';
 
 @Injectable()
 export class SmsService {
+  private readonly logger = new Logger(SmsService.name);
   private client: Twilio;
-
+  private rateLimits: Map<string, { count: number; resetTime: number }> = new Map();
 
   constructor(private prisma: PrismaService) {
     this.client = new Twilio(
@@ -15,134 +16,388 @@ export class SmsService {
     );
   }
 
-    async sendSMS(phone: string, message: string) {
-    const result = await this.client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phone.startsWith('+') ? phone : `+976${phone}` // For Mongolian numbers
-    });
-    await this.prisma.sMS.create({
-      data: {
-        phoneNumber: phone,
-        message: message,
-        status: result.status,
-      },
-    });
-    if (!result) {
-      return {
-        success: false,
-        message: 'Failed to send SMS',
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      };
+  // Simple rate limiting: max 10 SMS per hour per phone
+  private checkRateLimit(phone: string): void {
+    const now = Date.now();
+    const key = phone;
+    const maxRequests = 10;
+    const windowMs = 60 * 60 * 1000; // 1 hour
+
+    const entry = this.rateLimits.get(key);
+
+    if (!entry || now > entry.resetTime) {
+      this.rateLimits.set(key, { count: 1, resetTime: now + windowMs });
+      return;
     }
-    return {
+
+    if (entry.count >= maxRequests) {
+      const resetInMinutes = Math.ceil((entry.resetTime - now) / (60 * 1000));
+      throw new Error(`Rate limit exceeded. Try again in ${resetInMinutes} minutes.`);
+    }
+
+    entry.count++;
+  }
+
+  async sendSMS(phone: string, message: string) {
+    try {
+      // Basic validation
+      if (!phone || !message) {
+        return {
+          success: false,
+          message: 'Phone number and message are required',
+          statusCode: HttpStatus.BAD_REQUEST,
+        };
+      }
+
+      // Check rate limit
+      this.checkRateLimit(phone);
+
+      this.logger.log(`Sending SMS to ${phone}: ${message.substring(0, 50)}...`);
+
+      const result = await this.client.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phone.startsWith('+') ? phone : `+976${phone}`
+      });
+
+      await this.prisma.sMS.create({
+        data: {
+          phoneNumber: phone,
+          message: message,
+          status: result.status || 'sent',
+        },
+      });
+
+      this.logger.log(`SMS sent successfully to ${phone}, SID: ${result.sid}`);
+
+      return {
         success: true,
         message: 'SMS sent successfully',
         data: result,
         statusCode: HttpStatus.OK,
-    };
+      };
 
+    } catch (error) {
+      this.logger.error(`Failed to send SMS to ${phone}: ${error.message}`, error.stack);
+
+      // Save failed SMS record
+      try {
+        await this.prisma.sMS.create({
+          data: {
+            phoneNumber: phone,
+            message: message,
+            status: 'failed',
+          },
+        });
+      } catch (dbError) {
+        this.logger.error(`Failed to save SMS record: ${dbError.message}`);
+      }
+
+      if (error.message.includes('Rate limit exceeded')) {
+        return {
+          success: false,
+          message: error.message,
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Failed to send SMS',
+        error: error.message,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      };
+    }
   }
 
 
   async sendPickupCode(phone: string, lockerLocation: string, code: string, deliveryId: number) {
-    const message = `Таны илгээмж бэлэн боллоо!\nБайршил: ${lockerLocation}\nКод: ${code}`;
-    const result =  await this.client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phone.startsWith('+') ? phone : `+976${phone}` // For Mongolian numbers
-    });
+    try {
+      // Basic validation
+      if (!phone || !lockerLocation || !code) {
+        return {
+          success: false,
+          message: 'Phone, locker location, and code are required',
+          statusCode: HttpStatus.BAD_REQUEST,
+        };
+      }
 
-    await this.prisma.sMS.create({
-      data: {
-        phoneNumber: phone,
-        message: message,
-        status: result.status,
-      },
-    });
+      // Check rate limit
+      this.checkRateLimit(phone);
 
-    if (!result) {
+      const message = `Таны илгээмж бэлэн боллоо!\nБайршил: ${lockerLocation}\nКод: ${code}`;
+
+      this.logger.log(`Sending pickup code SMS to ${phone} for delivery ${deliveryId}`);
+
+      const result = await this.client.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phone.startsWith('+') ? phone : `+976${phone}`
+      });
+
+      await this.prisma.sMS.create({
+        data: {
+          phoneNumber: phone,
+          message: message,
+          status: result.status || 'sent',
+        },
+      });
+
+      // Update delivery order if ID provided
+      if (deliveryId) {
+        await this.prisma.deliveryOrder.update({
+          where: { id: deliveryId },
+          data: { isSendSMS: true },
+        });
+        this.logger.log(`Updated delivery order ${deliveryId} SMS status`);
+      }
+
+      this.logger.log(`Pickup code SMS sent successfully to ${phone}`);
+
+      return {
+        success: true,
+        message: 'Pickup code SMS sent successfully',
+        data: result,
+        statusCode: HttpStatus.OK,
+      };
+
+    } catch (error) {
+      this.logger.error(`Failed to send pickup code SMS to ${phone}: ${error.message}`, error.stack);
+
+      // Save failed SMS record
+      try {
+        await this.prisma.sMS.create({
+          data: {
+            phoneNumber: phone,
+            message: `Таны илгээмж бэлэн боллоо!\nБайршил: ${lockerLocation}\nКод: ${code}`,
+            status: 'failed',
+          },
+        });
+      } catch (dbError) {
+        this.logger.error(`Failed to save pickup SMS record: ${dbError.message}`);
+      }
+
+      if (error.message.includes('Rate limit exceeded')) {
+        return {
+          success: false,
+          message: error.message,
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        };
+      }
+
       return {
         success: false,
-        message: 'Failed to send SMS',
+        message: 'Failed to send pickup code SMS',
+        error: error.message,
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       };
     }
-    if (deliveryId) {
-      await this.prisma.deliveryOrder.update({
-        where: { id: deliveryId },
-        data: { isSendSMS: true },
-      });
-    }
-
-    return {
-      success: true,
-      message: 'SMS sent successfully',
-      data: result,
-      statusCode: HttpStatus.OK,
-    };
   }
 
   async sendDeliveryCode(phone: string, code: string) {
-    const message = `Таны илгээмж бэлэн боллоо!\nКод: ${code}`;
-    const result = await this.client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phone.startsWith('+') ? phone : `+976${phone}` // For Mongolian numbers
-    });
+    try {
+      // Basic validation
+      if (!phone || !code) {
+        return {
+          success: false,
+          message: 'Phone and code are required',
+          statusCode: HttpStatus.BAD_REQUEST,
+        };
+      }
 
-    await this.prisma.sMS.create({
-      data: {
-        phoneNumber: phone,
-        message: message,
-        status: result.status,
-      },
-    });
+      // Check rate limit
+      this.checkRateLimit(phone);
 
-    if (!result) {
+      const message = `Таны илгээмж бэлэн боллоо!\nКод: ${code}`;
+
+      this.logger.log(`Sending delivery code SMS to ${phone}`);
+
+      const result = await this.client.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phone.startsWith('+') ? phone : `+976${phone}`
+      });
+
+      await this.prisma.sMS.create({
+        data: {
+          phoneNumber: phone,
+          message: message,
+          status: result.status || 'sent',
+        },
+      });
+
+      this.logger.log(`Delivery code SMS sent successfully to ${phone}`);
+
+      return {
+        success: true,
+        message: 'Delivery code SMS sent successfully',
+        data: result,
+        statusCode: HttpStatus.OK,
+      };
+
+    } catch (error) {
+      this.logger.error(`Failed to send delivery code SMS to ${phone}: ${error.message}`, error.stack);
+
+      // Save failed SMS record
+      try {
+        await this.prisma.sMS.create({
+          data: {
+            phoneNumber: phone,
+            message: `Таны илгээмж бэлэн боллоо!\nКод: ${code}`,
+            status: 'failed',
+          },
+        });
+      } catch (dbError) {
+        this.logger.error(`Failed to save delivery SMS record: ${dbError.message}`);
+      }
+
+      if (error.message.includes('Rate limit exceeded')) {
+        return {
+          success: false,
+          message: error.message,
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        };
+      }
+
       return {
         success: false,
-        message: 'Failed to send SMS',
+        message: 'Failed to send delivery code SMS',
+        error: error.message,
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       };
     }
-
-    return {
-      success: true,
-      message: 'SMS sent successfully',
-      data: result,
-      statusCode: HttpStatus.OK,
-    };
   }
 
   async sendDeliveryNotification(phone: string, message: string) {
-    const result = await this.client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phone.startsWith('+') ? phone : `+976${phone}` // For Mongolian numbers
-    });
+    try {
+      // Basic validation
+      if (!phone || !message) {
+        return {
+          success: false,
+          message: 'Phone and message are required',
+          statusCode: HttpStatus.BAD_REQUEST,
+        };
+      }
 
-    await this.prisma.sMS.create({
-      data: {
-        phoneNumber: phone,
-        message: message,
-        status: result.status,
-      },
-    });
+      // Check rate limit
+      this.checkRateLimit(phone);
 
-    if (!result) {
+      this.logger.log(`Sending delivery notification SMS to ${phone}`);
+
+      const result = await this.client.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phone.startsWith('+') ? phone : `+976${phone}`
+      });
+
+      await this.prisma.sMS.create({
+        data: {
+          phoneNumber: phone,
+          message: message,
+          status: result.status || 'sent',
+        },
+      });
+
+      this.logger.log(`Delivery notification SMS sent successfully to ${phone}`);
+
+      return {
+        success: true,
+        message: 'Delivery notification SMS sent successfully',
+        data: result,
+        statusCode: HttpStatus.OK,
+      };
+
+    } catch (error) {
+      this.logger.error(`Failed to send delivery notification SMS to ${phone}: ${error.message}`, error.stack);
+
+      // Save failed SMS record
+      try {
+        await this.prisma.sMS.create({
+          data: {
+            phoneNumber: phone,
+            message: message,
+            status: 'failed',
+          },
+        });
+      } catch (dbError) {
+        this.logger.error(`Failed to save notification SMS record: ${dbError.message}`);
+      }
+
+      if (error.message.includes('Rate limit exceeded')) {
+        return {
+          success: false,
+          message: error.message,
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        };
+      }
+
       return {
         success: false,
-        message: 'Failed to send SMS',
+        message: 'Failed to send delivery notification SMS',
+        error: error.message,
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       };
     }
+  }
 
-    return {
-      success: true,
-      message: 'SMS sent successfully',
-      data: result,
-      statusCode: HttpStatus.OK,
-    };
+  // Get SMS history for a phone number
+  async getSmsHistory(phoneNumber: string, limit: number = 10) {
+    try {
+      const smsRecords = await this.prisma.sMS.findMany({
+        where: { phoneNumber },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      });
+
+      return {
+        success: true,
+        data: smsRecords,
+        statusCode: HttpStatus.OK,
+      };
+
+    } catch (error) {
+      this.logger.error(`Failed to get SMS history for ${phoneNumber}: ${error.message}`);
+
+      return {
+        success: false,
+        message: 'Failed to get SMS history',
+        error: error.message,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      };
+    }
+  }
+
+  // Get SMS statistics
+  async getSmsStats() {
+    try {
+      const totalSms = await this.prisma.sMS.count();
+      const sentSms = await this.prisma.sMS.count({
+        where: { status: 'sent' }
+      });
+      const failedSms = await this.prisma.sMS.count({
+        where: { status: 'failed' }
+      });
+
+      return {
+        success: true,
+        data: {
+          total: totalSms,
+          sent: sentSms,
+          failed: failedSms,
+          successRate: totalSms > 0 ? (sentSms / totalSms * 100).toFixed(2) : '0.00'
+        },
+        statusCode: HttpStatus.OK,
+      };
+
+    } catch (error) {
+      this.logger.error(`Failed to get SMS stats: ${error.message}`);
+
+      return {
+        success: false,
+        message: 'Failed to get SMS statistics',
+        error: error.message,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      };
+    }
   }
 }

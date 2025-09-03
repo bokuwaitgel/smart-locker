@@ -1,11 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, MinLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  MinLength,
+} from 'class-validator';
 import { ContainerStatus } from '@prisma/client';
 
 export class CreateContainerDto {
   @ApiProperty({
     description: 'Unique board identifier for the container',
-    example: 'BOARD_001'
+    example: 'BOARD_001',
   })
   @IsNotEmpty()
   @IsString()
@@ -14,7 +21,7 @@ export class CreateContainerDto {
 
   @ApiProperty({
     description: 'Location of the container',
-    example: 'Main Entrance'
+    example: 'Main Entrance',
   })
   @IsNotEmpty()
   @IsString()
@@ -23,7 +30,7 @@ export class CreateContainerDto {
 
   @ApiPropertyOptional({
     description: 'Optional description of the container',
-    example: 'Container near the main entrance with 20 lockers'
+    example: 'Container near the main entrance with 20 lockers',
   })
   @IsOptional()
   @IsString()
@@ -33,7 +40,7 @@ export class CreateContainerDto {
 export class UpdateContainerDto {
   @ApiPropertyOptional({
     description: 'Location of the container',
-    example: 'Main Entrance'
+    example: 'Main Entrance',
   })
   @IsOptional()
   @IsString()
@@ -42,7 +49,7 @@ export class UpdateContainerDto {
 
   @ApiPropertyOptional({
     description: 'Optional description of the container',
-    example: 'Container near the main entrance with 20 lockers'
+    example: 'Container near the main entrance with 20 lockers',
   })
   @IsOptional()
   @IsString()
@@ -51,7 +58,7 @@ export class UpdateContainerDto {
   @ApiPropertyOptional({
     description: 'Status of the container',
     enum: ContainerStatus,
-    example: ContainerStatus.ACTIVE
+    example: ContainerStatus.ACTIVE,
   })
   @IsOptional()
   @IsEnum(ContainerStatus)

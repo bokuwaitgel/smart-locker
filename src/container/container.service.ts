@@ -1,13 +1,26 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateContainerDto, UpdateContainerDto, ContainerResponseDto, ContainerStatsDto } from './dto';
+import {
+  CreateContainerDto,
+  UpdateContainerDto,
+  ContainerResponseDto,
+  ContainerStatsDto,
+} from './dto';
 import { ContainerStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class ContainerService {
   constructor(private prisma: PrismaService) {}
 
-  async createContainer(data: CreateContainerDto, userRole: UserRole = UserRole.USER): Promise<any> {
+  async createContainer(
+    data: CreateContainerDto,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to create containers
     if (userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only administrators can create containers');
@@ -19,7 +32,9 @@ export class ContainerService {
     });
 
     if (existingContainer) {
-      throw new BadRequestException('Container with this boardId already exists');
+      throw new BadRequestException(
+        'Container with this boardId already exists',
+      );
     }
 
     try {
@@ -33,9 +48,9 @@ export class ContainerService {
         include: {
           Lockers: true,
           _count: {
-            select: { Lockers: true }
-          }
-        }
+            select: { Lockers: true },
+          },
+        },
       });
 
       return {
@@ -55,12 +70,14 @@ export class ContainerService {
         include: {
           Lockers: true,
           _count: {
-            select: { Lockers: true }
-          }
-        }
+            select: { Lockers: true },
+          },
+        },
       });
 
-      const formattedContainers = containers.map(container => this.formatContainerResponse(container));
+      const formattedContainers = containers.map((container) =>
+        this.formatContainerResponse(container),
+      );
 
       return {
         success: true,
@@ -79,9 +96,9 @@ export class ContainerService {
         include: {
           Lockers: true,
           _count: {
-            select: { Lockers: true }
-          }
-        }
+            select: { Lockers: true },
+          },
+        },
       });
 
       if (!container) {
@@ -108,9 +125,9 @@ export class ContainerService {
         include: {
           Lockers: true,
           _count: {
-            select: { Lockers: true }
-          }
-        }
+            select: { Lockers: true },
+          },
+        },
       });
 
       if (!container) {
@@ -130,7 +147,11 @@ export class ContainerService {
     }
   }
 
-  async updateContainer(id: number, data: UpdateContainerDto, userRole: UserRole = UserRole.USER): Promise<any> {
+  async updateContainer(
+    id: number,
+    data: UpdateContainerDto,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to update containers
     if (userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only administrators can update containers');
@@ -152,9 +173,9 @@ export class ContainerService {
         include: {
           Lockers: true,
           _count: {
-            select: { Lockers: true }
-          }
-        }
+            select: { Lockers: true },
+          },
+        },
       });
 
       return {
@@ -163,14 +184,20 @@ export class ContainerService {
         data: this.formatContainerResponse(result),
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
       throw new BadRequestException('Failed to update container');
     }
   }
 
-  async deleteContainer(id: number, userRole: UserRole = UserRole.USER): Promise<any> {
+  async deleteContainer(
+    id: number,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to delete containers
     if (userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only administrators can delete containers');
@@ -184,11 +211,11 @@ export class ContainerService {
           Lockers: {
             where: {
               status: {
-                not: 'PENDING'
-              }
-            }
-          }
-        }
+                not: 'PENDING',
+              },
+            },
+          },
+        },
       });
 
       if (!container) {
@@ -197,7 +224,9 @@ export class ContainerService {
 
       // Prevent deletion if container has active lockers
       if (container.Lockers.length > 0) {
-        throw new BadRequestException('Cannot delete container with active lockers');
+        throw new BadRequestException(
+          'Cannot delete container with active lockers',
+        );
       }
 
       await this.prisma.container.delete({ where: { id } });
@@ -207,7 +236,11 @@ export class ContainerService {
         message: 'Container deleted successfully',
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException('Failed to delete container');
@@ -220,9 +253,9 @@ export class ContainerService {
         where: { boardId },
         include: {
           Lockers: {
-            orderBy: { lockerNumber: 'asc' }
-          }
-        }
+            orderBy: { lockerNumber: 'asc' },
+          },
+        },
       });
 
       if (!container) {
@@ -245,10 +278,16 @@ export class ContainerService {
     }
   }
 
-  async updateContainerStatus(id: number, status: ContainerStatus, userRole: UserRole = UserRole.USER): Promise<any> {
+  async updateContainerStatus(
+    id: number,
+    status: ContainerStatus,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to update container status
     if (userRole !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only administrators can update container status');
+      throw new ForbiddenException(
+        'Only administrators can update container status',
+      );
     }
 
     try {
@@ -258,9 +297,9 @@ export class ContainerService {
         include: {
           Lockers: true,
           _count: {
-            select: { Lockers: true }
-          }
-        }
+            select: { Lockers: true },
+          },
+        },
       });
 
       return {
@@ -283,9 +322,15 @@ export class ContainerService {
         totalLockers,
       ] = await Promise.all([
         this.prisma.container.count(),
-        this.prisma.container.count({ where: { status: ContainerStatus.ACTIVE } }),
-        this.prisma.container.count({ where: { status: ContainerStatus.INACTIVE } }),
-        this.prisma.container.count({ where: { status: ContainerStatus.MAINTENANCE } }),
+        this.prisma.container.count({
+          where: { status: ContainerStatus.ACTIVE },
+        }),
+        this.prisma.container.count({
+          where: { status: ContainerStatus.INACTIVE },
+        }),
+        this.prisma.container.count({
+          where: { status: ContainerStatus.MAINTENANCE },
+        }),
         this.prisma.locker.count(),
       ]);
 

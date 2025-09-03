@@ -1,11 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, MinLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  MinLength,
+} from 'class-validator';
 import { LockerStatus } from '@prisma/client';
 
 export class CreateLockerDto {
   @ApiProperty({
     description: 'Board ID of the container where this locker belongs',
-    example: 'BOARD_001'
+    example: 'BOARD_001',
   })
   @IsNotEmpty()
   @IsString()
@@ -14,7 +21,7 @@ export class CreateLockerDto {
 
   @ApiProperty({
     description: 'Unique locker number within the container',
-    example: 'L001'
+    example: 'L001',
   })
   @IsNotEmpty()
   @IsString()
@@ -23,7 +30,7 @@ export class CreateLockerDto {
 
   @ApiPropertyOptional({
     description: 'Optional description of the locker',
-    example: 'Small locker for packages'
+    example: 'Small locker for packages',
   })
   @IsOptional()
   @IsString()
@@ -33,7 +40,7 @@ export class CreateLockerDto {
 export class UpdateLockerDto {
   @ApiPropertyOptional({
     description: 'Optional description of the locker',
-    example: 'Medium locker for packages'
+    example: 'Medium locker for packages',
   })
   @IsOptional()
   @IsString()
@@ -42,7 +49,7 @@ export class UpdateLockerDto {
   @ApiPropertyOptional({
     description: 'Status of the locker',
     enum: LockerStatus,
-    example: LockerStatus.AVAILABLE
+    example: LockerStatus.AVAILABLE,
   })
   @IsOptional()
   @IsEnum(LockerStatus)
@@ -95,7 +102,7 @@ export class LockerStatsDto {
 export class BulkUpdateLockersDto {
   @ApiProperty({
     description: 'Array of locker IDs to update',
-    example: [1, 2, 3]
+    example: [1, 2, 3],
   })
   @IsNotEmpty()
   lockerIds: number[];
@@ -103,7 +110,7 @@ export class BulkUpdateLockersDto {
   @ApiProperty({
     description: 'New status for all selected lockers',
     enum: LockerStatus,
-    example: LockerStatus.AVAILABLE
+    example: LockerStatus.AVAILABLE,
   })
   @IsNotEmpty()
   @IsEnum(LockerStatus)

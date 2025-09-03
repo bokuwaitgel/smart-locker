@@ -1,13 +1,27 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateLockerDto, UpdateLockerDto, LockerResponseDto, LockerStatsDto, BulkUpdateLockersDto } from './dto';
+import {
+  CreateLockerDto,
+  UpdateLockerDto,
+  LockerResponseDto,
+  LockerStatsDto,
+  BulkUpdateLockersDto,
+} from './dto';
 import { LockerStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class LockerService {
   constructor(private prisma: PrismaService) {}
 
-  async createLocker(data: CreateLockerDto, userRole: UserRole = UserRole.USER): Promise<any> {
+  async createLocker(
+    data: CreateLockerDto,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to create lockers
     if (userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only administrators can create lockers');
@@ -32,7 +46,9 @@ export class LockerService {
       });
 
       if (existingLocker) {
-        throw new BadRequestException('Locker number already exists in this container');
+        throw new BadRequestException(
+          'Locker number already exists in this container',
+        );
       }
 
       const result = await this.prisma.locker.create({
@@ -53,7 +69,11 @@ export class LockerService {
         data: this.formatLockerResponse(result),
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException('Failed to create locker');
@@ -69,7 +89,9 @@ export class LockerService {
         },
       });
 
-      const formattedLockers = lockers.map(locker => this.formatLockerResponse(locker));
+      const formattedLockers = lockers.map((locker) =>
+        this.formatLockerResponse(locker),
+      );
 
       return {
         success: true,
@@ -107,7 +129,10 @@ export class LockerService {
     }
   }
 
-  async getLockerByNumber(lockerNumber: string, boardId?: string): Promise<any> {
+  async getLockerByNumber(
+    lockerNumber: string,
+    boardId?: string,
+  ): Promise<any> {
     try {
       const whereClause: any = { lockerNumber };
       if (boardId) {
@@ -138,7 +163,11 @@ export class LockerService {
     }
   }
 
-  async updateLocker(id: number, data: UpdateLockerDto, userRole: UserRole = UserRole.USER): Promise<any> {
+  async updateLocker(
+    id: number,
+    data: UpdateLockerDto,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to update lockers
     if (userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only administrators can update lockers');
@@ -168,17 +197,26 @@ export class LockerService {
         data: this.formatLockerResponse(result),
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
       throw new BadRequestException('Failed to update locker');
     }
   }
 
-  async updateLockerStatus(id: number, status: LockerStatus, userRole: UserRole = UserRole.USER): Promise<any> {
+  async updateLockerStatus(
+    id: number,
+    status: LockerStatus,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to update locker status
     if (userRole !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only administrators can update locker status');
+      throw new ForbiddenException(
+        'Only administrators can update locker status',
+      );
     }
 
     try {
@@ -200,10 +238,15 @@ export class LockerService {
     }
   }
 
-  async bulkUpdateLockers(data: BulkUpdateLockersDto, userRole: UserRole = UserRole.USER): Promise<any> {
+  async bulkUpdateLockers(
+    data: BulkUpdateLockersDto,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to bulk update lockers
     if (userRole !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only administrators can bulk update lockers');
+      throw new ForbiddenException(
+        'Only administrators can bulk update lockers',
+      );
     }
 
     try {
@@ -231,7 +274,10 @@ export class LockerService {
     }
   }
 
-  async deleteLocker(id: number, userRole: UserRole = UserRole.USER): Promise<any> {
+  async deleteLocker(
+    id: number,
+    userRole: UserRole = UserRole.USER,
+  ): Promise<any> {
     // Check if user has permission to delete lockers
     if (userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only administrators can delete lockers');
@@ -262,7 +308,11 @@ export class LockerService {
         message: 'Locker deleted successfully',
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException('Failed to delete locker');
@@ -279,13 +329,17 @@ export class LockerService {
         },
       });
 
-      const formattedLockers = lockers.map(locker => this.formatLockerResponse(locker));
+      const formattedLockers = lockers.map((locker) =>
+        this.formatLockerResponse(locker),
+      );
+
+      const container = lockers[0]?.Container;
 
       return {
         success: true,
         message: 'Lockers retrieved successfully',
         data: {
-          containerId: boardId,
+          container: container,
           lockers: formattedLockers,
           totalCount: formattedLockers.length,
         },
@@ -310,7 +364,11 @@ export class LockerService {
         },
       });
 
-      const formattedLockers = lockers.map(locker => this.formatLockerResponse(locker));
+      const formattedLockers = lockers.map((locker) =>
+        this.formatLockerResponse(locker),
+      );
+
+
 
       return {
         success: true,
@@ -335,7 +393,9 @@ export class LockerService {
         this.prisma.locker.count({ where: { status: LockerStatus.AVAILABLE } }),
         this.prisma.locker.count({ where: { status: LockerStatus.OCCUPIED } }),
         this.prisma.locker.count({ where: { status: LockerStatus.PENDING } }),
-        this.prisma.locker.count({ where: { status: LockerStatus.MAINTENANCE } }),
+        this.prisma.locker.count({
+          where: { status: LockerStatus.MAINTENANCE },
+        }),
       ]);
 
       return {
@@ -390,7 +450,6 @@ export class LockerService {
     const { Container, ...lockerData } = locker;
     return {
       ...lockerData,
-      container: Container,
     };
   }
 }

@@ -19,7 +19,10 @@ export class AuthService {
   }
 
   // Validate password
-  private async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
+  private async validatePassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 
@@ -39,7 +42,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const isPasswordValid = await this.validatePassword(password, user.password);
+    const isPasswordValid = await this.validatePassword(
+      password,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -189,4 +195,3 @@ export class AuthService {
     return userProfile;
   }
 }
- 

@@ -1,12 +1,20 @@
-
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString, IsOptional, IsPositive, Min, IsEnum, IsUUID } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsOptional,
+  IsPositive,
+  Min,
+  IsEnum,
+  IsUUID,
+} from 'class-validator';
 import { PaymentStatus } from '@prisma/client';
 
 export class CreatePaymentDto {
   @ApiProperty({
     description: 'Delivery order ID for which payment is being created',
-    example: 123
+    example: 123,
   })
   @IsNotEmpty()
   @IsNumber()
@@ -16,7 +24,7 @@ export class CreatePaymentDto {
   @ApiProperty({
     description: 'Payment amount in Mongolian Tugrik',
     example: 5000,
-    minimum: 100
+    minimum: 100,
   })
   @IsNotEmpty()
   @IsNumber()
@@ -26,7 +34,7 @@ export class CreatePaymentDto {
 
   @ApiPropertyOptional({
     description: 'Optional description for the payment',
-    example: 'Payment for locker rental'
+    example: 'Payment for locker rental',
   })
   @IsOptional()
   @IsString()
@@ -36,7 +44,7 @@ export class CreatePaymentDto {
 export class CreateInvoiceDto {
   @ApiProperty({
     description: 'Delivery order ID for invoice creation',
-    example: 123
+    example: 123,
   })
   @IsNotEmpty()
   @IsNumber()
@@ -46,7 +54,7 @@ export class CreateInvoiceDto {
   @ApiProperty({
     description: 'Invoice amount in Mongolian Tugrik',
     example: 5000,
-    minimum: 100
+    minimum: 100,
   })
   @IsNotEmpty()
   @IsNumber()
@@ -56,7 +64,7 @@ export class CreateInvoiceDto {
 
   @ApiPropertyOptional({
     description: 'Optional invoice description',
-    example: 'Invoice for smart locker service'
+    example: 'Invoice for smart locker service',
   })
   @IsOptional()
   @IsString()
@@ -66,7 +74,7 @@ export class CreateInvoiceDto {
 export class CheckInvoiceDto {
   @ApiProperty({
     description: 'QPay invoice ID to check',
-    example: 'invoice_123456789'
+    example: 'invoice_123456789',
   })
   @IsNotEmpty()
   @IsString()
@@ -164,7 +172,7 @@ export class PaymentHistoryDto {
 export class RefundPaymentDto {
   @ApiProperty({
     description: 'Payment ID to refund',
-    example: 123
+    example: 123,
   })
   @IsNotEmpty()
   @IsNumber()
@@ -173,7 +181,7 @@ export class RefundPaymentDto {
 
   @ApiProperty({
     description: 'Refund amount (partial or full)',
-    example: 2500
+    example: 2500,
   })
   @IsNotEmpty()
   @IsNumber()
@@ -182,7 +190,7 @@ export class RefundPaymentDto {
 
   @ApiProperty({
     description: 'Reason for refund',
-    example: 'Customer requested cancellation'
+    example: 'Customer requested cancellation',
   })
   @IsNotEmpty()
   @IsString()

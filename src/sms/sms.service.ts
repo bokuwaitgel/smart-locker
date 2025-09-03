@@ -7,12 +7,13 @@ import { Twilio } from 'twilio';
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
   private client: Twilio;
-  private rateLimits: Map<string, { count: number; resetTime: number }> = new Map();
+  private rateLimits: Map<string, { count: number; resetTime: number }> =
+    new Map();
 
   constructor(private prisma: PrismaService) {
     this.client = new Twilio(
       process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
+      process.env.TWILIO_AUTH_TOKEN,
     );
   }
 
@@ -32,7 +33,9 @@ export class SmsService {
 
     if (entry.count >= maxRequests) {
       const resetInMinutes = Math.ceil((entry.resetTime - now) / (60 * 1000));
-      throw new Error(`Rate limit exceeded. Try again in ${resetInMinutes} minutes.`);
+      throw new Error(
+        `Rate limit exceeded. Try again in ${resetInMinutes} minutes.`,
+      );
     }
 
     entry.count++;
@@ -52,12 +55,14 @@ export class SmsService {
       // Check rate limit
       this.checkRateLimit(phone);
 
-      this.logger.log(`Sending SMS to ${phone}: ${message.substring(0, 50)}...`);
+      this.logger.log(
+        `Sending SMS to ${phone}: ${message.substring(0, 50)}...`,
+      );
 
       const result = await this.client.messages.create({
         body: message,
         from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+976${phone}`
+        to: phone.startsWith('+') ? phone : `+976${phone}`,
       });
 
       await this.prisma.sMS.create({
@@ -76,9 +81,11 @@ export class SmsService {
         data: result,
         statusCode: HttpStatus.OK,
       };
-
     } catch (error) {
-      this.logger.error(`Failed to send SMS to ${phone}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to send SMS to ${phone}: ${error.message}`,
+        error.stack,
+      );
 
       // Save failed SMS record
       try {
@@ -110,8 +117,12 @@ export class SmsService {
     }
   }
 
-
-  async sendPickupCode(phone: string, lockerLocation: string, code: string, deliveryId: number) {
+  async sendPickupCode(
+    phone: string,
+    lockerLocation: string,
+    code: string,
+    deliveryId: number,
+  ) {
     try {
       // Basic validation
       if (!phone || !lockerLocation || !code) {
@@ -127,12 +138,14 @@ export class SmsService {
 
       const message = `Таны илгээмж бэлэн боллоо!\nБайршил: ${lockerLocation}\nКод: ${code}`;
 
-      this.logger.log(`Sending pickup code SMS to ${phone} for delivery ${deliveryId}`);
+      this.logger.log(
+        `Sending pickup code SMS to ${phone} for delivery ${deliveryId}`,
+      );
 
       const result = await this.client.messages.create({
         body: message,
         from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+976${phone}`
+        to: phone.startsWith('+') ? phone : `+976${phone}`,
       });
 
       await this.prisma.sMS.create({
@@ -160,9 +173,11 @@ export class SmsService {
         data: result,
         statusCode: HttpStatus.OK,
       };
-
     } catch (error) {
-      this.logger.error(`Failed to send pickup code SMS to ${phone}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to send pickup code SMS to ${phone}: ${error.message}`,
+        error.stack,
+      );
 
       // Save failed SMS record
       try {
@@ -174,7 +189,9 @@ export class SmsService {
           },
         });
       } catch (dbError) {
-        this.logger.error(`Failed to save pickup SMS record: ${dbError.message}`);
+        this.logger.error(
+          `Failed to save pickup SMS record: ${dbError.message}`,
+        );
       }
 
       if (error.message.includes('Rate limit exceeded')) {
@@ -215,7 +232,7 @@ export class SmsService {
       const result = await this.client.messages.create({
         body: message,
         from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+976${phone}`
+        to: phone.startsWith('+') ? phone : `+976${phone}`,
       });
 
       await this.prisma.sMS.create({
@@ -234,9 +251,11 @@ export class SmsService {
         data: result,
         statusCode: HttpStatus.OK,
       };
-
     } catch (error) {
-      this.logger.error(`Failed to send delivery code SMS to ${phone}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to send delivery code SMS to ${phone}: ${error.message}`,
+        error.stack,
+      );
 
       // Save failed SMS record
       try {
@@ -248,7 +267,9 @@ export class SmsService {
           },
         });
       } catch (dbError) {
-        this.logger.error(`Failed to save delivery SMS record: ${dbError.message}`);
+        this.logger.error(
+          `Failed to save delivery SMS record: ${dbError.message}`,
+        );
       }
 
       if (error.message.includes('Rate limit exceeded')) {
@@ -287,7 +308,7 @@ export class SmsService {
       const result = await this.client.messages.create({
         body: message,
         from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+976${phone}`
+        to: phone.startsWith('+') ? phone : `+976${phone}`,
       });
 
       await this.prisma.sMS.create({
@@ -298,7 +319,9 @@ export class SmsService {
         },
       });
 
-      this.logger.log(`Delivery notification SMS sent successfully to ${phone}`);
+      this.logger.log(
+        `Delivery notification SMS sent successfully to ${phone}`,
+      );
 
       return {
         success: true,
@@ -306,9 +329,11 @@ export class SmsService {
         data: result,
         statusCode: HttpStatus.OK,
       };
-
     } catch (error) {
-      this.logger.error(`Failed to send delivery notification SMS to ${phone}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to send delivery notification SMS to ${phone}: ${error.message}`,
+        error.stack,
+      );
 
       // Save failed SMS record
       try {
@@ -320,7 +345,9 @@ export class SmsService {
           },
         });
       } catch (dbError) {
-        this.logger.error(`Failed to save notification SMS record: ${dbError.message}`);
+        this.logger.error(
+          `Failed to save notification SMS record: ${dbError.message}`,
+        );
       }
 
       if (error.message.includes('Rate limit exceeded')) {
@@ -354,9 +381,10 @@ export class SmsService {
         data: smsRecords,
         statusCode: HttpStatus.OK,
       };
-
     } catch (error) {
-      this.logger.error(`Failed to get SMS history for ${phoneNumber}: ${error.message}`);
+      this.logger.error(
+        `Failed to get SMS history for ${phoneNumber}: ${error.message}`,
+      );
 
       return {
         success: false,
@@ -372,10 +400,10 @@ export class SmsService {
     try {
       const totalSms = await this.prisma.sMS.count();
       const sentSms = await this.prisma.sMS.count({
-        where: { status: 'sent' }
+        where: { status: 'sent' },
       });
       const failedSms = await this.prisma.sMS.count({
-        where: { status: 'failed' }
+        where: { status: 'failed' },
       });
 
       return {
@@ -384,11 +412,11 @@ export class SmsService {
           total: totalSms,
           sent: sentSms,
           failed: failedSms,
-          successRate: totalSms > 0 ? (sentSms / totalSms * 100).toFixed(2) : '0.00'
+          successRate:
+            totalSms > 0 ? ((sentSms / totalSms) * 100).toFixed(2) : '0.00',
         },
         statusCode: HttpStatus.OK,
       };
-
     } catch (error) {
       this.logger.error(`Failed to get SMS stats: ${error.message}`);
 

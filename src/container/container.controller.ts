@@ -12,12 +12,21 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { ContainerService } from './container.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { CreateContainerDto, UpdateContainerDto, ContainerStatsDto } from './dto';
+import {
+  CreateContainerDto,
+  UpdateContainerDto,
+  ContainerStatsDto,
+} from './dto';
 import { ContainerStatus, UserRole } from '@prisma/client';
 
 @ApiTags('containers')
@@ -32,21 +41,30 @@ export class ContainerController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new container (Admin only)' })
   @ApiResponse({ status: 201, description: 'Container created successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   async createContainer(@Body() data: CreateContainerDto, @Request() req) {
     return this.containerService.createContainer(data, req.user.role);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all containers' })
-  @ApiResponse({ status: 200, description: 'Containers retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Containers retrieved successfully',
+  })
   async getAllContainers(@Request() req) {
     return this.containerService.getAllContainers(req.user.role);
   }
 
   @Get('stats')
   @ApiOperation({ summary: 'Get container statistics' })
-  @ApiResponse({ status: 200, description: 'Statistics retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Statistics retrieved successfully',
+  })
   async getContainerStats(): Promise<ContainerStatsDto> {
     return this.containerService.getContainerStats();
   }
@@ -71,12 +89,15 @@ export class ContainerController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a container (Admin only)' })
   @ApiResponse({ status: 200, description: 'Container updated successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Container not found' })
   async updateContainer(
     @Param('id', ParseIntPipe) id: number,
     @Body() data: UpdateContainerDto,
-    @Request() req
+    @Request() req,
   ) {
     return this.containerService.updateContainer(id, data, req.user.role);
   }
@@ -84,14 +105,24 @@ export class ContainerController {
   @Put(':id/status')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update container status (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Container status updated successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 200,
+    description: 'Container status updated successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   async updateContainerStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body('status') status: ContainerStatus,
-    @Request() req
+    @Request() req,
   ) {
-    return this.containerService.updateContainerStatus(id, status, req.user.role);
+    return this.containerService.updateContainerStatus(
+      id,
+      status,
+      req.user.role,
+    );
   }
 
   @Delete(':id')
@@ -99,7 +130,10 @@ export class ContainerController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a container (Admin only)' })
   @ApiResponse({ status: 200, description: 'Container deleted successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
   @ApiResponse({ status: 404, description: 'Container not found' })
   async deleteContainer(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.containerService.deleteContainer(id, req.user.role);

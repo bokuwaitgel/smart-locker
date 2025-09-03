@@ -1,6 +1,9 @@
 // src/sms/sms.templates.ts
 export class SmsTemplates {
-  static readonly PICKUP_CODE = (lockerLocation: string, code: string): string =>
+  static readonly PICKUP_CODE = (
+    lockerLocation: string,
+    code: string,
+  ): string =>
     `Таны илгээмж бэлэн боллоо!\nБайршил: ${lockerLocation}\nКод: ${code}\n\nSmart Locker`;
 
   static readonly DELIVERY_CODE = (code: string): string =>
@@ -29,17 +32,22 @@ export class SmsTemplateManager {
     }
   }
 
-  static validateTemplateParams(type: string, params: Record<string, any>): boolean {
+  static validateTemplateParams(
+    type: string,
+    params: Record<string, any>,
+  ): boolean {
     const requiredParams: Record<string, string[]> = {
       PICKUP_CODE: ['lockerLocation', 'code'],
       DELIVERY_CODE: ['code'],
       VERIFICATION_CODE: ['code'],
-      WELCOME_MESSAGE: ['userName']
+      WELCOME_MESSAGE: ['userName'],
     };
 
     const required = requiredParams[type];
     if (!required) return true;
 
-    return required.every(param => params[param] !== undefined && params[param] !== null);
+    return required.every(
+      (param) => params[param] !== undefined && params[param] !== null,
+    );
   }
 }

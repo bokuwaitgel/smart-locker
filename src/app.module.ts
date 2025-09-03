@@ -11,7 +11,14 @@ import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
-    LockerModule, DeliveryModule, PaymentModule, PrismaModule, AuthModule, ContainerModule, SmsModule],
+    LockerModule,
+    DeliveryModule,
+    PaymentModule,
+    PrismaModule,
+    AuthModule,
+    ContainerModule,
+    SmsModule,
+  ],
   providers: [SmsService],
   controllers: [SmsController],
 })

@@ -45,8 +45,12 @@ export class SmsRateLimiterService {
     // Check if limit exceeded
     if (entry.count >= this.maxRequests) {
       const resetInMinutes = Math.ceil((entry.resetTime - now) / (60 * 1000));
-      this.logger.warn(`Rate limit exceeded for phone: ${phoneNumber}. Reset in ${resetInMinutes} minutes`);
-      throw new Error(`Rate limit exceeded. Try again in ${resetInMinutes} minutes.`);
+      this.logger.warn(
+        `Rate limit exceeded for phone: ${phoneNumber}. Reset in ${resetInMinutes} minutes`,
+      );
+      throw new Error(
+        `Rate limit exceeded. Try again in ${resetInMinutes} minutes.`,
+      );
     }
 
     // Increment counter
@@ -63,7 +67,7 @@ export class SmsRateLimiterService {
       }
     }
 
-    keysToDelete.forEach(key => this.rateLimits.delete(key));
+    keysToDelete.forEach((key) => this.rateLimits.delete(key));
   }
 
   getRemainingRequests(phoneNumber: string): number {

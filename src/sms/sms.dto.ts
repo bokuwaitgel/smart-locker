@@ -4,7 +4,7 @@ import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 export class SmsDto {
   @ApiProperty({
     description: 'Phone number to send SMS to',
-    example: '+97699119911'
+    example: '+97699119911',
   })
   @IsNotEmpty({ message: 'Phone number is required' })
   @IsString()
@@ -12,7 +12,7 @@ export class SmsDto {
 
   @ApiProperty({
     description: 'SMS message content',
-    example: 'Your verification code is: 123456'
+    example: 'Your verification code is: 123456',
   })
   @IsNotEmpty({ message: 'Message is required' })
   @IsString()
@@ -24,7 +24,7 @@ export class SmsDto {
 export class PickupCodeDto {
   @ApiProperty({
     description: 'Phone number to send pickup code to',
-    example: '+97699119911'
+    example: '+97699119911',
   })
   @IsNotEmpty({ message: 'Phone number is required' })
   @IsString()
@@ -32,7 +32,7 @@ export class PickupCodeDto {
 
   @ApiProperty({
     description: 'Locker location',
-    example: 'Central Station, Locker #5'
+    example: 'Central Station, Locker #5',
   })
   @IsNotEmpty({ message: 'Locker location is required' })
   @IsString()
@@ -41,7 +41,7 @@ export class PickupCodeDto {
 
   @ApiProperty({
     description: 'Pickup code',
-    example: 'A1B2C3'
+    example: 'A1B2C3',
   })
   @IsNotEmpty({ message: 'Pickup code is required' })
   @IsString()
@@ -52,7 +52,7 @@ export class PickupCodeDto {
   @ApiProperty({
     description: 'Delivery order ID',
     example: 123,
-    required: false
+    required: false,
   })
   deliveryId?: number;
 }
@@ -60,7 +60,7 @@ export class PickupCodeDto {
 export class DeliveryCodeDto {
   @ApiProperty({
     description: 'Phone number to send delivery code to',
-    example: '+97699119911'
+    example: '+97699119911',
   })
   @IsNotEmpty({ message: 'Phone number is required' })
   @IsString()
@@ -68,7 +68,7 @@ export class DeliveryCodeDto {
 
   @ApiProperty({
     description: 'Delivery code',
-    example: 'D4E5F6'
+    example: 'D4E5F6',
   })
   @IsNotEmpty({ message: 'Delivery code is required' })
   @IsString()

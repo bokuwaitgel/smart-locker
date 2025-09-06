@@ -2,13 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
-import { IoAdapter } from '@nestjs/platform-socket.io';
 
+//cors
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable WebSocket adapter
-  app.useWebSocketAdapter(new IoAdapter(app));
+  app.enableCors({
+    origin: 'http://localhost:3031',
+    credentials: true,
+  });
 
   app.useGlobalPipes(new ValidationPipe());
 

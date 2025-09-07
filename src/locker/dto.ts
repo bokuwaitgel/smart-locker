@@ -35,6 +35,14 @@ export class CreateLockerDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiProperty({
+    description: 'Index position of the locker in the container',
+    example: 1,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  lockerIndex: number;
 }
 
 export class UpdateLockerDto {

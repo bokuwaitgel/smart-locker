@@ -53,6 +53,7 @@ export class LockerService {
 
       const result = await this.prisma.locker.create({
         data: {
+          lockerIndex: data.lockerIndex,
           lockerNumber: data.lockerNumber,
           description: data.description,
           status: LockerStatus.PENDING,

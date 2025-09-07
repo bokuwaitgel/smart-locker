@@ -11,7 +11,9 @@ async function bootstrap() {
     origin: [
       'http://localhost:3031',
       'http://172.29.1.6:3031',
-      'http://20.2.73.131:3031'
+      'http://20.2.73.131:3031',
+      'null', // Allow local file access for testing
+      'file://', // Allow file:// protocol for local HTML files
     ],
     credentials: true,
   });

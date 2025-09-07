@@ -24,6 +24,7 @@ model Container {
 model Locker {
   id             Int             @id @default(autoincrement())
   lockerNumber   String          @unique
+  lockerIndex    Int             @default(999)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   description    String?

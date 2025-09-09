@@ -317,7 +317,10 @@ export class DeliveryService {
       if (invoice) {
         const res = await this.paymentService.checkPaymentWithInvoice(invoice);
       }
- 
+      
+      const locker = await this.prisma.locker.findUnique({
+        where: { lockerNumber: delivery.lockerId },
+      });
 
 
       return {
@@ -326,6 +329,7 @@ export class DeliveryService {
         data: {
           deliveryId: delivery.id,
           pickupCode: data.pickupCode,
+          lockerIndex : locker?.lockerIndex,
           paymentStatus: delivery.paymentStatus,
           status: delivery.status,
         },

@@ -12,7 +12,7 @@ import {
   PickupRequestDto,
   InitBoardDto,
 } from './delivery.dto';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomFill } from 'crypto';
 import { SmsService } from '../sms/sms.service';
 import { PaymentService } from 'src/payment/payment.service';
 
@@ -340,6 +340,22 @@ export class DeliveryService {
     }
   }
 
+
+  async generatePickupCode(): Promise<string> {
+    let code = '';
+
+    while(true) {
+      // genereate code rule start 2 alphabet next 4 digits
+      code = randomBytes(2).toString('hex').toUpperCase() + Math.floor(1000 + Math.random() * 9000).toString();
+      const existing = await this.prisma.deliveryOrder.findUnique({
+        where: { pickupCode: code },
+      });
+      if (!existing) break; // ensure uniqueness
+    }
+    
+    return code;
+  }
+
   async startDelivery(data: StartDeliveryDto) {
     try {
       this.logger.log(
@@ -373,8 +389,7 @@ export class DeliveryService {
       }
 
       // Generate unique pickup code
-      const code = randomBytes(4).toString('hex').toUpperCase();
-      this.logger.debug(`Generated pickup code: ${code}`);
+      const code = await this.generatePickupCode();
 
       // Create delivery order
       const delivery = await this.prisma.deliveryOrder.create({

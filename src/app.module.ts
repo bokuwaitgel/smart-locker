@@ -8,6 +8,7 @@ import { ContainerModule } from './container/container.module';
 import { SmsService } from './sms/sms.service';
 import { SmsController } from './sms/sms.controller';
 import { SmsModule } from './sms/sms.module';
+import { DeliveryGateway } from './delivery/delivery.gateway';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { SmsModule } from './sms/sms.module';
     ContainerModule,
     SmsModule,
   ],
-  providers: [SmsService],
-  controllers: [SmsController],
+  providers: [],
+  controllers: [],
 })
 export class AppModule {}

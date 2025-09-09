@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus, HttpException } from '@nestjs/common';
+import { Injectable, HttpStatus, HttpException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from 'src/sms/sms.service';
 import { CreatePaymentDto, CreateInvoiceDto, CheckInvoiceDto } from './dto';
@@ -8,12 +8,14 @@ import {
   PaymentNotProcessedException,
   ResourceConflictException,
 } from 'src/common/exceptions/custom.exception';
+import { DeliveryGateway } from 'src/delivery/delivery.gateway';
 
 @Injectable()
 export class PaymentService {
     constructor(
         private prisma: PrismaService,
         private smsService: SmsService,
+        @Inject(forwardRef(() => DeliveryGateway)) private deliveryGateway: DeliveryGateway,
     ) {}
   private readonly apiUrl = 'https://merchant.qpay.mn/v2';
   private authToken: string | null = null;
@@ -213,12 +215,12 @@ export class PaymentService {
   }
 
   async verifyInvoice(
-    paymentId: number,
-    deliveryId: number,
+    paymentId: string,
+    deliveryId: string,
   ): Promise<any> {
     const payment = await this.prisma.payment.findFirst({
       where: {
-        id: paymentId,
+        id: Number(paymentId),
       }
     });
 
@@ -227,7 +229,7 @@ export class PaymentService {
     }
 
     const delivery = await this.prisma.deliveryOrder.findUnique({
-      where: { id: deliveryId },
+      where: { id: Number(deliveryId) },
     });
 
     if (!delivery) {
@@ -235,6 +237,13 @@ export class PaymentService {
     }
 
     if (payment.status === 'PAID') {
+      this.deliveryGateway.handlePayment({
+        deliveryId: delivery.id,
+        boardId: delivery.boardId,
+        lockerId: delivery.lockerId,
+        paymentId: payment.id,
+        paymentStatus: payment.status,
+      });
       return {
         success: true,
         type: 'success',
@@ -256,7 +265,7 @@ export class PaymentService {
         async (tx) => {
           const updatedPayment = await tx.payment.updateMany({
             where: {
-              id: paymentId,
+              id: Number(paymentId),
               status: 'UNPAID',
             },
             data: {
@@ -276,10 +285,19 @@ export class PaymentService {
 
           // Update delivery status to PAID
           const updatedDelivery = await tx.deliveryOrder.update({
-            where: { id: deliveryId },
+            where: { id: Number(deliveryId) },
             data: {
               paymentStatus: 'PAID',
             },
+          });
+
+          // send gateway message to delivery service
+          this.deliveryGateway.handlePayment({
+            deliveryId: delivery.id,
+            boardId: delivery.boardId,
+            lockerId: delivery.lockerId,
+            paymentId: payment.id,
+            paymentStatus: payment.status,
           });
           
           
@@ -307,8 +325,25 @@ export class PaymentService {
     if (!payment) {
       throw new HttpException('Payment not found', HttpStatus.NOT_FOUND);
     }
+    const delivery = await this.prisma.deliveryOrder.findUnique({
+        where: { id: payment.deliveryId },
+      });
+    if (!delivery) {
+      throw new HttpException('Delivery order not found', HttpStatus.NOT_FOUND);
+    }
+
 
     if (payment.status === 'PAID') {
+      
+  
+      // send gateway message to delivery service
+      this.deliveryGateway.handlePayment( {
+        deliveryId: delivery.id,
+        boardId: delivery.boardId,
+        lockerId: delivery.lockerId,
+        paymentId: payment.id,
+        paymentStatus: payment.status,
+      });
       return {
         status: true,
         type: 'success',
@@ -316,6 +351,56 @@ export class PaymentService {
         data: payment,
       };
     } else {
+      const response = await this.checkInvoice(invoiceId);
+      if (response.data.count > 0) {
+        const transaction = await this.prisma.$transaction(
+          async (tx) => {
+            const updatedPayment = await tx.payment.updateMany({
+              where: {
+                id: Number(payment.id),
+                status: 'UNPAID',
+              },
+              data: {
+                status: 'PAID',
+                updatedAt: new Date(),
+              },
+            });
+            if (updatedPayment.count > 0) {
+              // Notify user about successful payment
+              console.log('Sending notification to user for successful payment');
+              await this.smsService.sendDeliveryNotification(
+                delivery.pickupMobile,
+                `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`
+              );
+
+            }
+
+            // Update delivery status to PAID
+            const updatedDelivery = await tx.deliveryOrder.update({
+              where: { id: Number(delivery.id) },
+              data: {
+                paymentStatus: 'PAID',
+              },
+            });
+
+            // send gateway message to delivery service
+            this.deliveryGateway.handlePayment({
+              deliveryId: delivery.id,
+              boardId: delivery.boardId,
+              lockerId: delivery.lockerId,
+              paymentId: payment.id,
+              paymentStatus: payment.status,
+            });
+            
+            
+
+            if (updatedPayment.count == 0) {
+              throw new ResourceConflictException(
+                `Баталгаажсан гүйлгээ байна.`,
+              );
+            }
+          }
+        );
       return {
         status: false,
         type: 'error',
@@ -324,6 +409,6 @@ export class PaymentService {
       };
     }
   }
+  }
 
 }
-

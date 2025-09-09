@@ -80,7 +80,7 @@ DELETE /payments/123/cancel
 ```env
 QPAY_USERNAME=your_qpay_username
 QPAY_PASSWORD=your_qpay_password
-BASE_URL=http://localhost:3000
+BASE_URL=http://localhost:3030/api
 ```
 
 ## Error Responses

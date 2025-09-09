@@ -15,19 +15,19 @@ export class PaymentController {
   }
 
   @Get('verify/:paymentId/:deliveryId')
-public async verifyInvoice(
-    @Param('paymentId') paymentId: string,
-    @Param('deliveryId') deliveryId: string,
-) {
-    console.log('Verifying payment:', paymentId, 'for deliveryId:', deliveryId);
-    return await this.paymentService.verifyInvoice(Number(paymentId), Number(deliveryId));
-}
+  public async verifyInvoice(
+      @Param('paymentId') paymentId: string,
+      @Param('deliveryId') deliveryId: string,
+  ) {
+      console.log('Verifying payment:', paymentId, 'for deliveryId:', deliveryId);
+      return await this.paymentService.verifyInvoice(paymentId, deliveryId);
+  }
 
-@Get('checkPayment/:invoiceId')
-public async checkPaymentWithInvoice(
-    @Param('invoiceId') invoiceId: string,
-): Promise<any> {
-    console.log('Checking payment with invoice:', invoiceId);
-    return await this.paymentService.checkPaymentWithInvoice(invoiceId);
-}
+  @Get('checkPayment/:invoiceId')
+  public async checkPaymentWithInvoice(
+      @Param('invoiceId') invoiceId: string,
+  ): Promise<any> {
+      console.log('Checking payment with invoice:', invoiceId);
+      return await this.paymentService.checkPaymentWithInvoice(invoiceId);
+  }
 }

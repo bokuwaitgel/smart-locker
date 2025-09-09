@@ -78,6 +78,7 @@ export class DeliveryService {
         const lockers = await this.prisma.locker.createMany({
           data: Array.from({ length: data.numberOfLockers }, (_, i) => ({
             boardId: data.boardId,
+            lockerIndex: i,
             lockerNumber: `${data.boardId}_Locker${String(i + 1).padStart(3, '0')}`,
             status: 'AVAILABLE',
             description: `Locker ${i + 1} in board ${data.boardId}`,
@@ -298,6 +299,26 @@ export class DeliveryService {
           statusCode: HttpStatus.NOT_FOUND,
         };
       }
+
+      const payment = await this.prisma.payment.findFirst({
+        where: { deliveryId: delivery.id },
+      });
+
+      if (!payment) {
+        return {
+          success: false,
+          type: 'error',
+          message: 'Payment not found',
+          statusCode: HttpStatus.NOT_FOUND,
+        };
+      }
+  
+      const invoice = payment.InvoiceId
+      if (invoice) {
+        const res = await this.paymentService.checkPaymentWithInvoice(invoice);
+      }
+ 
+
 
       return {
         success: true,

@@ -349,8 +349,8 @@ export class DeliveryService {
     let code = '';
 
     while(true) {
-      // genereate code rule start 2 alphabet next 4 digits
-      code = randomBytes(1).toString('hex').toUpperCase() + Math.floor(1000 + Math.random() * 9000).toString();
+      // genereate code 6 digits
+      code = Math.floor(100000 + Math.random() * 900000).toString();
       const existing = await this.prisma.deliveryOrder.findUnique({
         where: { pickupCode: code },
       });

@@ -1,21 +1,18 @@
 // src/sms/sms.service.ts
 import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Twilio } from 'twilio';
+import axios from 'axios';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
-  private client: Twilio;
   private rateLimits: Map<string, { count: number; resetTime: number }> =
     new Map();
 
-  constructor(private prisma: PrismaService) {
-    this.client = new Twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN,
-    );
-  }
+  constructor(private prisma: PrismaService) {}
+  
 
   // Simple rate limiting: max 10 SMS per hour per phone
   private checkRateLimit(phone: string): void {
@@ -59,21 +56,28 @@ export class SmsService {
         `Sending SMS to ${phone}: ${message.substring(0, 50)}...`,
       );
 
-      const result = await this.client.messages.create({
-        body: message,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+976${phone}`,
+      // send sms to call_pro axios get
+      const result = await axios.get(process.env.CALL_PRO_URL || 'https://api.messagepro.mn/send', {
+        params: {
+          to: phone,
+          message: message,
+          from: process.env.FROM_NUMBER || '72729979',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.CALL_PRO_KEY || '',
+        },
       });
 
       await this.prisma.sMS.create({
         data: {
           phoneNumber: phone,
           message: message,
-          status: result.status || 'sent',
+          status: result[0].Result || 'sent',
         },
       });
 
-      this.logger.log(`SMS sent successfully to ${phone}, SID: ${result.sid}`);
+      this.logger.log(`SMS sent successfully to ${phone}, SID: ${result[0]["Message ID"]}`);
 
       return {
         success: true,
@@ -142,17 +146,24 @@ export class SmsService {
         `Sending pickup code SMS to ${phone} for delivery ${deliveryId}`,
       );
 
-      const result = await this.client.messages.create({
-        body: message,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+976${phone}`,
+      const result = await axios.get(process.env.CALL_PRO_URL || 'https://api.messagepro.mn/send', {
+        params: {
+          to: phone,
+          message: message,
+          from: process.env.FROM_NUMBER || '72729979',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.CALL_PRO_KEY || '',
+        },
       });
-
+      
+      // Save SMS record
       await this.prisma.sMS.create({
         data: {
           phoneNumber: phone,
           message: message,
-          status: result.status || 'sent',
+          status: result[0].Result || 'sent',
         },
       });
 
@@ -229,17 +240,25 @@ export class SmsService {
 
       this.logger.log(`Sending delivery code SMS to ${phone}`);
 
-      const result = await this.client.messages.create({
-        body: message,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+976${phone}`,
+      const result = await axios.get(process.env.CALL_PRO_URL || 'https://api.messagepro.mn/send', {
+        params: {
+          to: phone,
+          message: message,
+          from: process.env.FROM_NUMBER || '72729979',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.CALL_PRO_KEY || '',
+        },
       });
+
+      // Save SMS record
 
       await this.prisma.sMS.create({
         data: {
           phoneNumber: phone,
           message: message,
-          status: result.status || 'sent',
+          status: result[0].Result || 'sent',
         },
       });
 
@@ -305,17 +324,23 @@ export class SmsService {
 
       this.logger.log(`Sending delivery notification SMS to ${phone}`);
 
-      const result = await this.client.messages.create({
-        body: message,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: phone.startsWith('+') ? phone : `+976${phone}`,
+      const result = await axios.get(process.env.CALL_PRO_URL || 'https://api.messagepro.mn/send', {
+        params: {
+          to: phone,
+          message: message,
+          from: process.env.FROM_NUMBER || '72729979',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.CALL_PRO_KEY || '',
+        },
       });
 
       await this.prisma.sMS.create({
         data: {
           phoneNumber: phone,
           message: message,
-          status: result.status || 'sent',
+          status: result[0].Result || 'sent',
         },
       });
 

@@ -2,8 +2,6 @@
 import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import axios from 'axios';
-import * as dotenv from 'dotenv';
-dotenv.config();
 
 @Injectable()
 export class SmsService {
@@ -49,42 +47,48 @@ export class SmsService {
         };
       }
 
-      // Check rate limit
-      this.checkRateLimit(phone);
+      // // Check rate limit
+      // this.checkRateLimit(phone);
 
       this.logger.log(
         `Sending SMS to ${phone}: ${message.substring(0, 50)}...`,
       );
 
-      // send sms to call_pro axios get
-      const result = await axios.get(process.env.CALL_PRO_URL || 'https://api.messagepro.mn/send', {
-        params: {
-          to: phone,
-          message: message,
-          from: process.env.FROM_NUMBER || '72729979',
-        },
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.CALL_PRO_KEY || '',
-        },
-      });
-
-      await this.prisma.sMS.create({
-        data: {
-          phoneNumber: phone,
-          message: message,
-          status: result[0].Result || 'sent',
-        },
-      });
-
-      this.logger.log(`SMS sent successfully to ${phone}, SID: ${result[0]["Message ID"]}`);
-
-      return {
-        success: true,
-        message: 'SMS sent successfully',
-        data: result,
-        statusCode: HttpStatus.OK,
+      let config = {
+          method: 'get',
+          maxBodyLength: Infinity,
+          url: `https://api.messagepro.mn/send?from=${process.env.FROM_NUMBER || '72729979'}&to=${phone}&text=${message}`,
+          headers: {
+            'x-api-key': process.env.CALL_PRO_KEY || 'ffb999795b180e5ae29d0c96378f22a1'
+          }
       };
+
+      let result = [];
+      axios.request(config)
+      .then(async (response) => {
+        console.log(JSON.stringify(response.data));
+        result = response.data;
+
+        await this.prisma.sMS.create({
+          data: {
+            phoneNumber: phone,
+            message: message,
+            status: response.data[0].Result || 'sent',
+          },
+        });
+
+        return {
+            success: true,
+            message: 'SMS sent successfully',
+            data: result,
+            statusCode: HttpStatus.OK,
+          };
+        })
+      .catch((error) => {
+        console.log(error);
+        throw error;
+      });
+      
     } catch (error) {
       this.logger.error(
         `Failed to send SMS to ${phone}: ${error.message}`,
@@ -145,45 +149,52 @@ export class SmsService {
       this.logger.log(
         `Sending pickup code SMS to ${phone} for delivery ${deliveryId}`,
       );
-
-      const result = await axios.get(process.env.CALL_PRO_URL || 'https://api.messagepro.mn/send', {
-        params: {
-          to: phone,
-          message: message,
-          from: process.env.FROM_NUMBER || '72729979',
-        },
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.CALL_PRO_KEY || '',
-        },
-      });
       
-      // Save SMS record
-      await this.prisma.sMS.create({
-        data: {
-          phoneNumber: phone,
-          message: message,
-          status: result[0].Result || 'sent',
-        },
-      });
-
-      // Update delivery order if ID provided
-      if (deliveryId) {
-        await this.prisma.deliveryOrder.update({
-          where: { id: deliveryId },
-          data: { isSendSMS: true },
-        });
-        this.logger.log(`Updated delivery order ${deliveryId} SMS status`);
-      }
-
-      this.logger.log(`Pickup code SMS sent successfully to ${phone}`);
-
-      return {
-        success: true,
-        message: 'Pickup code SMS sent successfully',
-        data: result,
-        statusCode: HttpStatus.OK,
+      let config = {
+          method: 'get',
+          maxBodyLength: Infinity,
+          url: `https://api.messagepro.mn/send?from=${process.env.FROM_NUMBER || '72729979'}&to=${phone}&text=${message}`,
+          headers: {
+            'x-api-key': process.env.CALL_PRO_KEY || 'ffb999795b180e5ae29d0c96378f22a1'
+          }
       };
+
+      let result = [];
+      axios.request(config)
+      .then(async (response) => {
+        console.log(JSON.stringify(response.data));
+        result = response.data;
+
+        await this.prisma.sMS.create({
+          data: {
+            phoneNumber: phone,
+            message: message,
+            status: response.data[0].Result || 'sent',
+          },
+        });
+
+        // Update delivery order if ID provided
+        if (deliveryId) {
+          await this.prisma.deliveryOrder.update({
+            where: { id: deliveryId },
+            data: { isSendSMS: true },
+          });
+          this.logger.log(`Updated delivery order ${deliveryId} SMS status`);
+        }
+
+        this.logger.log(`Pickup code SMS sent successfully to ${phone}`);
+
+        return {
+          success: true,
+          message: 'Pickup code SMS sent successfully',
+          data: result,
+          statusCode: HttpStatus.OK,
+        };
+      })
+      .catch((error) => {
+        console.log(error);
+        throw error;
+      });
     } catch (error) {
       this.logger.error(
         `Failed to send pickup code SMS to ${phone}: ${error.message}`,
@@ -240,36 +251,46 @@ export class SmsService {
 
       this.logger.log(`Sending delivery code SMS to ${phone}`);
 
-      const result = await axios.get(process.env.CALL_PRO_URL || 'https://api.messagepro.mn/send', {
-        params: {
-          to: phone,
-          message: message,
-          from: process.env.FROM_NUMBER || '72729979',
-        },
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.CALL_PRO_KEY || '',
-        },
-      });
-
-      // Save SMS record
-
-      await this.prisma.sMS.create({
-        data: {
-          phoneNumber: phone,
-          message: message,
-          status: result[0].Result || 'sent',
-        },
-      });
-
-      this.logger.log(`Delivery code SMS sent successfully to ${phone}`);
-
-      return {
-        success: true,
-        message: 'Delivery code SMS sent successfully',
-        data: result,
-        statusCode: HttpStatus.OK,
+      let config = {
+          method: 'get',
+          maxBodyLength: Infinity,
+          url: `https://api.messagepro.mn/send?from=${process.env.FROM_NUMBER || '72729979'}&to=${phone}&text=${message}`,
+          headers: {
+            'x-api-key': process.env.CALL_PRO_KEY || 'ffb999795b180e5ae29d0c96378f22a1'
+          }
       };
+
+      let result = [];
+      axios.request(config)
+      .then(async (response) => {
+        console.log(JSON.stringify(response.data));
+        result = response.data;
+
+
+        // Save SMS record
+
+        await this.prisma.sMS.create({
+          data: {
+            phoneNumber: phone,
+            message: message,
+            status: response.data[0].Result || 'sent',
+          },
+        });
+
+        this.logger.log(`Delivery code SMS sent successfully to ${phone}`);
+
+        return {
+          success: true,
+          message: 'Delivery code SMS sent successfully',
+          data: result,
+          statusCode: HttpStatus.OK,
+        };
+      })
+      .catch((error) => {
+        console.log(error);
+        throw error;
+      });
+
     } catch (error) {
       this.logger.error(
         `Failed to send delivery code SMS to ${phone}: ${error.message}`,
@@ -324,36 +345,46 @@ export class SmsService {
 
       this.logger.log(`Sending delivery notification SMS to ${phone}`);
 
-      const result = await axios.get(process.env.CALL_PRO_URL || 'https://api.messagepro.mn/send', {
-        params: {
-          to: phone,
-          message: message,
-          from: process.env.FROM_NUMBER || '72729979',
-        },
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.CALL_PRO_KEY || '',
-        },
-      });
-
-      await this.prisma.sMS.create({
-        data: {
-          phoneNumber: phone,
-          message: message,
-          status: result[0].Result || 'sent',
-        },
-      });
-
-      this.logger.log(
-        `Delivery notification SMS sent successfully to ${phone}`,
-      );
-
-      return {
-        success: true,
-        message: 'Delivery notification SMS sent successfully',
-        data: result,
-        statusCode: HttpStatus.OK,
+      let config = {
+          method: 'get',
+          maxBodyLength: Infinity,
+          url: `https://api.messagepro.mn/send?from=${process.env.FROM_NUMBER || '72729979'}&to=${phone}&text=${message}`,
+          headers: {
+            'x-api-key': process.env.CALL_PRO_KEY || 'ffb999795b180e5ae29d0c96378f22a1'
+          }
       };
+
+      let result = [];
+      axios.request(config)
+      .then(async (response) => {
+        console.log(JSON.stringify(response.data));
+        result = response.data;
+
+        // Save SMS record
+
+        await this.prisma.sMS.create({
+          data: {
+            phoneNumber: phone,
+            message: message,
+            status: response.data[0].Result || 'sent',
+          },
+        });
+
+        this.logger.log(
+          `Delivery notification SMS sent successfully to ${phone}`,
+        );
+
+        return {
+          success: true,
+          message: 'Delivery notification SMS sent successfully',
+          data: result,
+          statusCode: HttpStatus.OK,
+        };
+      })
+      .catch((error) => {
+        console.log(error);
+        throw error;
+      });
     } catch (error) {
       this.logger.error(
         `Failed to send delivery notification SMS to ${phone}: ${error.message}`,

@@ -107,10 +107,10 @@ export class PaymentService {
         invoice_code: 'MYAGMARCHULUUN_B_INVOICE',
         sender_invoice_no: '1234567',
         invoice_receiver_code: 'MYAGMARCHULUUN_B_INVOICE',
-        invoice_description: 'MYAGMARCHULUUN_B_INVOICE',
+        invoice_description: '24/7 box',
         sender_branch_code: 'App',
         amount: createInvoiceDto.amount,
-        callback_url: `http://143.110.184.5:3030/api/payment/verify/${paymentModel.id}/${createInvoiceDto.deliveryId}`,
+        callback_url: `http://143.110.184.5:3030/payment/verify/${paymentModel.id}/${createInvoiceDto.deliveryId}`,
       };
       const url = `${this.apiUrl}/invoice`;
 

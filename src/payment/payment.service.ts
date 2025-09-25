@@ -110,7 +110,7 @@ export class PaymentService {
         invoice_description: '24/7 box',
         sender_branch_code: 'App',
         amount: createInvoiceDto.amount,
-        callback_url: `http://143.110.184.5:3030/payment/verify/${paymentModel.id}/${createInvoiceDto.deliveryId}`,
+        callback_url: `http://143.110.184.5:3030/payments/verify/${paymentModel.id}/${createInvoiceDto.deliveryId}`,
       };
       const url = `${this.apiUrl}/invoice`;
 

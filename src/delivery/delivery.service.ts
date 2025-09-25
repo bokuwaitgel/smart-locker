@@ -243,7 +243,7 @@ export class DeliveryService {
       }
 
       // Update locker status to AVAILABLE
-      await this.prisma.locker.update({
+      const locker = await this.prisma.locker.update({
         where: { lockerNumber: updatedDelivery.lockerId },
         data: { status: 'AVAILABLE' },
       });
@@ -258,6 +258,7 @@ export class DeliveryService {
         data: {
           delivery: updatedDelivery,
           lockerId: updatedDelivery.lockerId,
+          lockerIndex: locker.lockerIndex,
           pickedUpAt: updatedDelivery.pickedUpAt,
         },
         statusCode: HttpStatus.OK,

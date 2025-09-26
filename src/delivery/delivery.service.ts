@@ -468,4 +468,20 @@ export class DeliveryService {
     }
   }
 
+  async getDeliveries(boardId?: string, status?: string) {
+    const where: any = {};
+    if (boardId) where.boardId = boardId;
+    if (status) where.status = status as any; // Cast to match DeliveryStatus
+
+    const data = await this.prisma.deliveryOrder.findMany({
+      include: { Container: true, Locker: true },
+      where,
+    });
+    return {
+      success: true,
+      message: 'Fetched all deliveries successfully',
+      data: data
+    };
+  }
+
 }

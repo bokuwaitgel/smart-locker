@@ -74,4 +74,16 @@ export class DeliveryController {
   async checkPayment(@Body() data: PickupRequestDto) {
     return this.deliveryService.checkPayment(data);
   }
+
+  @Get('deliveries')
+  @ApiOperation({ summary: 'Get deliveries with optional filters' })
+  @ApiResponse({ status: 200, description: 'List of deliveries' })
+  @ApiQuery({ name: 'boardId', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  async getDeliveries(
+    @Query('boardId') boardId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.deliveryService.getDeliveries(boardId, status);
+  }
 }

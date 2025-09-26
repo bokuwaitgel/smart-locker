@@ -10,7 +10,9 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3031',
+      "http://localhost:3000",
       'http://172.29.1.6:3031',
+      'http://143.110.184.5:3000', // Allow all subdomains of http:// for testing
       'http://20.2.73.131:3031',
       'null', // Allow local file access for testing
       'file://', // Allow file:// protocol for local HTML files

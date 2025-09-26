@@ -58,7 +58,6 @@ export class BannerService {
 
     async getBanners(): Promise<any> {
         const data = await this.prisma.banner.findMany({
-            where: { status: true },
             orderBy: { sortOrder: 'asc' },
         });
         return {

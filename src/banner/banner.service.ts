@@ -7,7 +7,6 @@ export class BannerService {
     constructor(private prisma: PrismaService) {} 
 
     async createBanner(type: string, file: any): Promise<any> {
-        console.log('Creating banner of type:', type);
         const s3 = new AwsS3Service();
         if (type === 'image') {
             console.log('Creating image banner');
@@ -45,16 +44,43 @@ export class BannerService {
 
     }
 
-    async getBanners(): Promise<any[]> {
-        return this.prisma.banner.findMany({
+    async updateBanner(id: number, status: boolean): Promise<any> {
+        const result = await this.prisma.banner.update({
+            where: { id },
+            data: { status },
+        });
+        return {
+            status: true,
+            message: 'Banner updated successfully',
+            data: result
+        };
+    }
+
+    async getBanners(): Promise<any> {
+        const data = await this.prisma.banner.findMany({
             where: { status: true },
             orderBy: { sortOrder: 'asc' },
         });
+        return {
+            status: true,
+            message: 'Banners fetched successfully',
+            data: data
+        };
     }
 
-    async deleteBanner(id: number): Promise<void> {
+    async deleteBanner(id: number): Promise<any> {
+       const banner = await this.prisma.banner.findUnique({
+            where: { id },
+        });
+        if (!banner) {
+            throw new Error('Banner not found');
+        }
         await this.prisma.banner.delete({
             where: { id },
         });
+        return {
+            status: true,
+            message: 'Banner deleted successfully',
+        };
     }
 }

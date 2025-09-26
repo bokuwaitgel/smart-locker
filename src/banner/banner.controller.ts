@@ -1,23 +1,8 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  Put,
-  Delete,
-  UseGuards,
-  Request,
-  HttpCode,
-  HttpStatus,
-  ParseIntPipe,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Post, Put, Param, UseInterceptors, UploadedFile, Headers, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { HttpCode, HttpStatus, ParseIntPipe } from '@nestjs/common';
+
 import { BannerService } from './banner.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -34,14 +19,30 @@ export class BannerController {
     @ApiBearerAuth()
     @ApiTags('Banner')
     @ApiOperation({ summary: 'Create a new banner' })
+    @UseInterceptors(FileInterceptor('file'))
     @ApiResponse({ status: 201, description: 'The banner has been created.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     @HttpCode(HttpStatus.CREATED)
     async createBanner(
-        @Body('type') type: string,
-        @Body('file') file: any,
+        @Body() data: { type: string },
+        @UploadedFile() file: Express.Multer.File,
     ): Promise<void> {
-        return this.bannerService.createBanner(type, file);
+        return this.bannerService.createBanner(data.type, file);
+    }
+
+    @Put(':id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiTags('Banner')
+    @ApiOperation({ summary: 'Update banner status' })
+    @ApiResponse({ status: 200, description: 'The banner has been updated.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    async updateBanner(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() data: { status: boolean },
+    ): Promise<void> {
+        return this.bannerService.updateBanner(id, data.status);
     }
 
     @Get()

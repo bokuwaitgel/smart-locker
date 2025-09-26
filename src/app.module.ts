@@ -9,6 +9,8 @@ import { SmsService } from './sms/sms.service';
 import { SmsController } from './sms/sms.controller';
 import { SmsModule } from './sms/sms.module';
 import { DeliveryGateway } from './delivery/delivery.gateway';
+import { BannerModule } from './banner/banner.module';
+import { AwsS3Service } from './s3.service';
 
 @Module({
   imports: [
@@ -19,8 +21,9 @@ import { DeliveryGateway } from './delivery/delivery.gateway';
     AuthModule,
     ContainerModule,
     SmsModule,
+    BannerModule,
   ],
-  providers: [],
+  providers: [ SmsService, DeliveryGateway, AwsS3Service],
   controllers: [],
 })
 export class AppModule {}

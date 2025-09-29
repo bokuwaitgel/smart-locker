@@ -5,12 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { SmsModule } from '../sms/sms.module';
 import { PaymentModule } from '../payment/payment.module';
 import { DeliveryGateway } from './delivery.gateway';
-import { PaymentService } from 'src/payment/payment.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-
+import { LockerModule } from 'src/locker/locker.module';
 
 @Module({
-  imports: [PrismaModule, SmsModule, forwardRef(() => PaymentModule)],
+  imports: [PrismaModule, forwardRef(() => SmsModule), forwardRef(() => PaymentModule), forwardRef(() => LockerModule)],
   controllers: [DeliveryController],
   providers: [DeliveryService, DeliveryGateway],
   exports: [DeliveryService, DeliveryGateway],

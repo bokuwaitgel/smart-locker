@@ -95,4 +95,26 @@ export class DeliveryGateway {
 
     
   }
+
+  //open locker door
+  @SubscribeMessage('openLocker')
+  async handleOpenLocker(@MessageBody() data: { boardId: string; lockerId: string; reason: string }): Promise<void> {
+    console.log('Open locker request received:', data);
+
+    const locker = await this.prisma.locker.findUnique({
+      where: { lockerNumber: data.lockerId },
+    });
+
+    if (!locker) {
+      console.log('Locker not found for ID:', data.lockerId);
+      return;
+    }
+
+    this.server.emit(data.boardId, {
+      action: 'unlock',
+      lockerId: data.lockerId,
+      lockerIndex: locker.lockerIndex,
+      reason: data.reason,
+    });
+  }
 }

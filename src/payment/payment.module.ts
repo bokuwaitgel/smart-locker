@@ -4,14 +4,14 @@ import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
-import { SmsService } from '../sms/sms.service';
-import { DeliveryGateway } from 'src/delivery/delivery.gateway';
+import { SmsModule } from '../sms/sms.module';
 import { DeliveryModule } from 'src/delivery/delivery.module';
+import { LockerModule } from 'src/locker/locker.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, HttpModule, forwardRef(() => DeliveryModule)],
+  imports: [PrismaModule, AuthModule, HttpModule, forwardRef(() => SmsModule), forwardRef(() => DeliveryModule), forwardRef(() => LockerModule)],
   controllers: [PaymentController],
-  providers: [PaymentService, SmsService],
+  providers: [PaymentService],
   exports: [PaymentService],
 })
 export class PaymentModule {}

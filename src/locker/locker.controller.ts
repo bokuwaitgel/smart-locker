@@ -197,4 +197,13 @@ export class LockerController {
   async getLockersByContainer(@Param('boardId') boardId: string) {
     return this.lockerService.getLockersByContainer(boardId);
   }
+
+  @Post('open')
+  @Roles(UserRole.ADMIN, UserRole.USER)
+  @ApiOperation({ summary: 'Open a locker' })
+  @ApiResponse({ status: 200, description: 'Locker opened successfully' })
+  @ApiResponse({ status: 404, description: 'Locker not found' })
+  async openLocker(@Body() data: { lockerNumber: string; boardId: string }) {
+    return this.lockerService.openLocker(data.lockerNumber, data.boardId);
+  }
 }

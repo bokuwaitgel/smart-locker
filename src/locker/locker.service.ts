@@ -453,4 +453,29 @@ export class LockerService {
       ...lockerData,
     };
   }
+
+  async openLocker(lockerNumber: string, boardId: string): Promise<any> {
+    try {
+      const locker = await this.prisma.locker.findFirst({
+        where: { lockerNumber, boardId },
+      });
+
+      if (!locker) {
+        throw new NotFoundException('Locker not found');
+      }
+
+      // Here you would typically integrate with the hardware API to unlock the locker.
+      // For this example, we'll just simulate the action.
+
+      return {
+        success: true,
+        message: `Locker ${lockerNumber} on board ${boardId} is being opened`,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to open locker');
+    }
+  }
 }

@@ -15,6 +15,7 @@ import {
 import { randomBytes, randomFill } from 'crypto';
 import { SmsService } from '../sms/sms.service';
 import { PaymentService } from 'src/payment/payment.service';
+import { create } from 'domain';
 
 @Injectable()
 export class DeliveryService {
@@ -98,8 +99,8 @@ export class DeliveryService {
         data: {
           boardId: data.boardId,
           numberOfLockers: lockers.length,
-          lockers: lockers,
-          is_new_board: board.id === undefined ? false : true,
+          location: board.location,
+          createdAt: board.createdAt
         },
       };
 

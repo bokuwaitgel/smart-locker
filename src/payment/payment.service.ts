@@ -281,6 +281,7 @@ export class PaymentService {
               `Таны төлбөр амжилттай төлөгдлөө. Та төлбөр шалгах товчыг дарна уу.`
               // `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`
             );
+            
             this.deliveryGateway.handlePayment({
             deliveryId: delivery.id,
             boardId: delivery.boardId,

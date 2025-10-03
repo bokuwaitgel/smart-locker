@@ -127,6 +127,9 @@ export class DeliveryService {
         `Found ${container.Lockers.length} lockers for board ${boardId}`,
       );
 
+      // order lockers by index
+      container.Lockers.sort((a, b) => a.lockerIndex - b.lockerIndex);
+
       return {
         success: true,
         type: 'success',
@@ -370,21 +373,21 @@ export class DeliveryService {
   async startDelivery(data: StartDeliveryDto) {
     try {
       this.logger.log(
-        `Starting delivery for locker ${data.lockerId} in board ${data.boardId}`,
+        `Starting delivery for locker ${data.lockerNumber} in board ${data.boardId}`,
       );
 
       // Validate locker availability
       const locker = await this.prisma.locker.findUnique({
-        where: { lockerNumber: data.lockerId },
+        where: { lockerNumber: data.lockerNumber },
       });
 
       if (!locker) {
-        throw new NotFoundException(`Locker ${data.lockerId} not found`);
+        throw new NotFoundException(`Locker ${data.lockerNumber} not found`);
       }
 
       if (locker.status !== 'AVAILABLE') {
         throw new BadRequestException(
-          `Locker ${data.lockerId} is not available. Current status: ${locker.status}`,
+          `Locker ${data.lockerNumber} is not available. Current status: ${locker.status}`,
         );
       }
 
@@ -405,7 +408,7 @@ export class DeliveryService {
       // Create delivery order
       const delivery = await this.prisma.deliveryOrder.create({
         data: {
-          lockerId: data.lockerId,
+          lockerId: data.lockerNumber,
           boardId: data.boardId,
           pickupCode: code,
           pickupMobile: data.pickupMobile,
@@ -423,7 +426,7 @@ export class DeliveryService {
 
       // Update locker status to OCCUPIED
       await this.prisma.locker.update({
-        where: { lockerNumber: data.lockerId },
+        where: { lockerNumber: data.lockerNumber },
         data: { status: 'OCCUPIED' },
       });
 
@@ -451,7 +454,7 @@ export class DeliveryService {
         data: {
           deliveryId: delivery.id,
           pickupCode: code,
-          lockerId: data.lockerId,
+          lockerNumber: data.lockerNumber,
           status: delivery.status,
           deliveredAt: delivery.deliveredAt,
         },

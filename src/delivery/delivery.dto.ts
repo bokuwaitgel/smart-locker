@@ -28,13 +28,13 @@ export enum PaymentStatus {
 
 export class StartDeliveryDto {
   @ApiProperty({
-    description: 'Locker ID where the delivery will be placed',
+    description: 'Locker Number where the delivery will be placed',
     example: 'L001',
   })
-  @IsNotEmpty({ message: 'Locker ID is required' })
+  @IsNotEmpty({ message: 'Locker Number is required' })
   @IsString()
   @Transform(({ value }) => value?.toString().trim())
-  lockerId: string;
+  lockerNumber: string;
 
   @ApiProperty({
     description: 'Board ID of the container',

@@ -95,7 +95,12 @@ export class DeliveryService {
         type: 'success',
         message: 'Lockers initialized successfully',
         statusCode: HttpStatus.CREATED,
-        data: lockers,
+        data: {
+          boardId: data.boardId,
+          numberOfLockers: lockers.length,
+          lockers: lockers,
+          is_new_board: board.id === undefined ? false : true,
+        },
       };
 
     } catch (error) {

@@ -143,8 +143,8 @@ export class SmsService {
 
       // Check rate limit
       this.checkRateLimit(phone);
-
-      const message = `Таны илгээмж бэлэн боллоо!\nБайршил: ${lockerLocation}\nКод: ${code}`;
+    
+      const message = `хүргэлтийн хайрцаг таны хүргэлтийг хүлээн авлаа!\nБайршил: ${lockerLocation}\nНууц код:: ${code}`;
 
       this.logger.log(
         `Sending pickup code SMS to ${phone} for delivery ${deliveryId}`,

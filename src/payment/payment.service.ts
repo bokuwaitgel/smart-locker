@@ -278,8 +278,16 @@ export class PaymentService {
             console.log('Sending notification to user for successful payment');
             await this.smsService.sendDeliveryNotification(
               delivery.pickupMobile,
-              `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`
+              `Таны төлбөр амжилттай төлөгдлөө. Та төлбөр шалгах товчыг дарна уу.`
+              // `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`
             );
+            this.deliveryGateway.handlePayment({
+            deliveryId: delivery.id,
+            boardId: delivery.boardId,
+            lockerId: delivery.lockerId,
+            paymentId: payment.id,
+            paymentStatus: payment.status,
+          });
 
           }
 

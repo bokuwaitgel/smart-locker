@@ -31,20 +31,18 @@ export class DeliveryService {
   private async calculateDeliveryPrice(delivery: any): Promise<number> {
     try {
       // Base price for delivery
-      let basePrice = 100; // Base price in MNT
+      let basePrice = 3500; // Base price in MNT
 
-      // Get container information for location-based pricing
-      const container = await this.prisma.container.findUnique({
-        where: { boardId: delivery.boardId },
-      });
+      const now = new Date();
+      const deliveredAt = new Date(delivery.deliveredAt);
+      const diffMs = now.getTime() - deliveredAt.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const hoursDiff = Math.floor(diffMins / 60) + 1;
 
-      // Add premium for certain locations (example logic)
-      if (container?.location?.toLowerCase().includes('central')) {
-        basePrice += 50; // Premium location surcharge
+
+      if (hoursDiff > 1) {
+        basePrice = basePrice * hoursDiff
       }
-
-      // Add size-based pricing if we had size information
-      // For now, using a simple calculation
 
       this.logger.debug(
         `Calculated delivery price: ${basePrice} for delivery ${delivery.id}`,

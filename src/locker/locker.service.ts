@@ -13,10 +13,14 @@ import {
   BulkUpdateLockersDto,
 } from './dto';
 import { LockerStatus, UserRole } from '@prisma/client';
+import { DeliveryGateway } from 'src/delivery/delivery.gateway';
 
 @Injectable()
 export class LockerService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private deliveryGateway: DeliveryGateway,
+  ) {}
 
   async createLocker(
     data: CreateLockerDto,
@@ -466,6 +470,15 @@ export class LockerService {
 
       // Here you would typically integrate with the hardware API to unlock the locker.
       // For this example, we'll just simulate the action.
+      // add websocket event to notify the locker board to open the locker
+      this.deliveryGateway.server.emit(boardId, {
+        action: 'unlock',
+        lockerId: lockerNumber,
+        lockerIndex: locker.lockerIndex,
+        reason: 'Manual open request',
+      });
+
+
 
       return {
         success: true,

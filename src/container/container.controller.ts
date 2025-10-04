@@ -146,4 +146,26 @@ export class ContainerController {
   async getLockersInContainer(@Param('boardId') boardId: string) {
     return this.containerService.getAllLockersInContainer(boardId);
   }
+
+  @Delete(':boardId/lockers')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete all lockers in a container (Admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lockers deleted successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+  })
+  @ApiResponse({ status: 404, description: 'Container not found' })
+  async deleteLockersInContainer(
+    @Param('boardId') boardId: number,
+    @Request() req,
+  ) {
+    return this.containerService.containerDeleteWithLockers(
+       Number(boardId)
+    );
+  }
 }

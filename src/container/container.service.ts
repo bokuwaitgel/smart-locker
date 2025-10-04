@@ -346,6 +346,39 @@ export class ContainerService {
     }
   }
 
+  async containerDeleteWithLockers(id: number): Promise<any> {
+    try {
+      // Check if container exists
+      const existingContainer = await this.prisma.container.findUnique({
+        where: { id },
+      });
+
+      if (!existingContainer) {
+        throw new NotFoundException('Container not found');
+      }
+
+      // Delete all lockers associated with the container
+      await this.prisma.locker.deleteMany({
+        where: { boardId: existingContainer.boardId },
+      });
+
+      // Delete the container
+      await this.prisma.container.delete({ where: { id } });
+
+      return {
+        success: true,
+        message: 'Container and its lockers deleted successfully',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        'Failed to delete container and its lockers',
+      );
+    }
+  }
+
   private formatContainerResponse(container: any): ContainerResponseDto {
     const { _count, ...containerData } = container;
     return {

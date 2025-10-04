@@ -33,15 +33,15 @@ export class DeliveryService {
       // Base price for delivery
       let basePrice = 3500; // Base price in MNT
 
+      // 3500 per day after first day
       const now = new Date();
-      const deliveredAt = new Date(delivery.deliveredAt);
-      const diffMs = now.getTime() - deliveredAt.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const hoursDiff = Math.floor(diffMins / 60) + 1;
-
-
-      if (hoursDiff > 1) {
-        basePrice = basePrice * hoursDiff
+      const deliveredAt = delivery.deliveredAt || new Date();
+      const daysStored = Math.ceil(
+        (now.getTime() - deliveredAt.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      
+      if (daysStored > 1) {
+        basePrice += (daysStored - 1) * 3500; // Add 3500 MNT for each additional day
       }
 
       this.logger.debug(

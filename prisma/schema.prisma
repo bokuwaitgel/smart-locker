@@ -66,15 +66,16 @@ model DeliveryOrder {
 }
 
 model Payment {
-  id         Int           @id @default(autoincrement())
-  amount     Float
-  status     PaymentStatus
-  deliveryId Int
-  delivery   DeliveryOrder @relation(fields: [deliveryId], references: [id])
-  InvoiceId  String?       @unique
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  QPayToken  QPayToken?
+  id          Int           @id @default(autoincrement())
+  amount      Float
+  status      PaymentStatus
+  deliveryId  Int
+  delivery    DeliveryOrder @relation(fields: [deliveryId], references: [id])
+  InvoiceId   String?       @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  QPayToken   QPayToken?    @relation(fields: [qPayTokenId], references: [id])
+  qPayTokenId Int?
 
   @@index([status])
   @@index([deliveryId])
@@ -89,9 +90,8 @@ model QPayToken {
   updatedAt        DateTime @default(now())
   expiresIn        Int
   refreshExpiresIn Int
-  Payment          Payment  @relation(fields: [paymentId], references: [id])
 
-  @@index([paymentId])
+  payments Payment[]
 }
 
 model SMS {

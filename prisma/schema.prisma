@@ -4,8 +4,13 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
+
+// Use `DATABASE_URL` in a `.env` file at the project root, for example:
+// For Postgres (recommended for production/local Postgres):
+// DATABASE_URL="postgresql://user:password@localhost:5432/mydb"
+// Or for SQLite (convenient for quick local development):
+// DATABASE_URL="file:./dev.db"
 
 model Container {
   id             Int             @id @default(autoincrement())

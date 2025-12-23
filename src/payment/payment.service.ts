@@ -44,7 +44,7 @@ export class PaymentService {
           // Save the token to the database
           const token = await this.prisma.qPayToken.findFirst({
             where: {
-              paymentId: 1, // Assuming you have a single token for the application
+              paymentId: 0, // Assuming you have a single token for the application
             },
           });
 
@@ -62,7 +62,7 @@ export class PaymentService {
           } else {
             await this.prisma.qPayToken.create({
               data: {
-                paymentId: 1, // Assuming you have a single token for the application
+                paymentId: 0, // Assuming you have a single token for the application
                 accessToken: res.access_token,
                 refreshToken: res.refresh_token,
                 expiresIn: res.expires_in,
@@ -116,7 +116,7 @@ export class PaymentService {
 
       const token = await this.prisma.qPayToken.findFirst({
         where: {
-          paymentId: 1,
+          paymentId: 0,
         },
       });
       let bearerToken = '';

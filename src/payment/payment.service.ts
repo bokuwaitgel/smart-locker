@@ -118,7 +118,7 @@ export class PaymentService {
 
       const token = await this.prisma.qPayToken.findFirst({
         where: {
-          paymentId: 0,
+          paymentId: 1,
         },
       });
       let bearerToken = '';

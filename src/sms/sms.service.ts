@@ -144,7 +144,7 @@ export class SmsService {
       // Check rate limit
       this.checkRateLimit(phone);
     
-      const message = `хүргэлтийн хайрцаг таны хүргэлтийг хүлээн авлаа! \nБайршил: ${lockerLocation} \nНууц код:: ${code}`;
+      const message = `хүргэлтийн хайрцаг таны хүргэлтийг хүлээн авлаа! \nБайршил: ${lockerLocation} \nНууц код: ${code}`;
 
       this.logger.log(
         `Sending pickup code SMS to ${phone} for delivery ${deliveryId}`,

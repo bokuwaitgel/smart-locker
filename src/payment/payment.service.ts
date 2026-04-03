@@ -24,78 +24,74 @@ export class PaymentService {
     try {
       const requestConfig = {
         url: `${this.apiUrl}/auth/token`,
-        method: 'POST',
+        method: 'POST' as const,
         auth: {
           username: process.env.QPAY_USERNAME || '',
           password: process.env.QPAY_PASSWORD || '',
         },
+        timeout: 30000,
       };
 
-      
+      const response = await axios(requestConfig);
 
-      return axios(requestConfig)
-        .then(async (response) => {
-          
-          const res = {
-            access_token: response.data['access_token'],
-            refresh_token: response.data['refresh_token'],
-            expires_in: response.data['expires_in'],
-            refresh_expires_in: response.data['refresh_expires_in'],
-          };
+      const res = {
+        access_token: response.data['access_token'],
+        refresh_token: response.data['refresh_token'],
+        expires_in: response.data['expires_in'],
+        refresh_expires_in: response.data['refresh_expires_in'],
+      };
 
-          // Save the token to the database
-          const token = await this.prisma.qPayToken.findFirst({
-            where: {
-              paymentId: 1, // Assuming you have a single token for the application
-            },
-          });
+      // Save the token to the database
+      const token = await this.prisma.qPayToken.findFirst({
+        where: {
+          paymentId: 1,
+        },
+      });
 
-
-          if (token) {
-            await this.prisma.qPayToken.update({
-              where: { id: token.id },
-              data: {
-                accessToken: res.access_token,
-                refreshToken: res.refresh_token,
-                expiresIn: res.expires_in,
-                refreshExpiresIn: res.refresh_expires_in,
-              },
-            });
-          } else {
-            await this.prisma.qPayToken.create({
-              data: {
-                paymentId: 1, // Assuming you have a single token for the application
-                accessToken: res.access_token,
-                refreshToken: res.refresh_token,
-                expiresIn: res.expires_in,
-                refreshExpiresIn: res.refresh_expires_in,
-              },
-            });
-          }
-          
-          return {
-            status: true,
-            type: 'success',
-            code: HttpStatus.OK,
-            data: res,
-          };
-        })
-        .catch((error) => {
-          console.log(error);
-          return {
-            status: false,
-            type: 'error',
-            code: HttpStatus.INTERNAL_SERVER_ERROR,
-          };
+      if (token) {
+        await this.prisma.qPayToken.update({
+          where: { id: token.id },
+          data: {
+            accessToken: res.access_token,
+            refreshToken: res.refresh_token,
+            expiresIn: res.expires_in,
+            refreshExpiresIn: res.refresh_expires_in,
+          },
         });
+      } else {
+        await this.prisma.qPayToken.create({
+          data: {
+            paymentId: 1,
+            accessToken: res.access_token,
+            refreshToken: res.refresh_token,
+            expiresIn: res.expires_in,
+            refreshExpiresIn: res.refresh_expires_in,
+          },
+        });
+      }
+
+      return {
+        status: true,
+        type: 'success',
+        code: HttpStatus.OK,
+        data: res,
+      };
     } catch (error) {
-      throw new Error('Failed to obtain authentication token');
+      console.log(error);
+      return {
+        status: false,
+        type: 'error',
+        code: HttpStatus.INTERNAL_SERVER_ERROR,
+      };
     }
   }
 
    async createInvoice(
     createInvoiceDto: CreateInvoiceDto,
+    retryCount: number = 0,
   ): Promise<any> {
+    const MAX_RETRIES = 2;
+
     try {
       const paymentModel = await this.prisma.payment.create({
         data: {
@@ -124,7 +120,6 @@ export class PaymentService {
       let bearerToken = '';
       if(!token) {
         const res = await this.getAuthToken();
-
         bearerToken = res.data.access_token;
       } else {
         bearerToken = token.accessToken;
@@ -134,33 +129,29 @@ export class PaymentService {
         Authorization: `Bearer ${bearerToken}`,
         'Content-Type': 'application/json',
       };
-      return axios
-        .post(url, postData, { headers })
-        .then(async (response) => {
-          await this.prisma.payment.update({
-            where: {
-              id: paymentModel.id,
-            },
-            data: {
-              InvoiceId: response.data.invoice_id,
-            },
-          });
 
-          return {
-            status: true,
-            type: 'success',
-            code: HttpStatus.OK,
-            data: response.data,
-          };
-        })
-        .catch(async (error) => {
-          if (error.response && error.response.status === 401) {
-            await this.getAuthToken();
-            return await this.createInvoice(createInvoiceDto);
-          }
-          throw new Error(`${error}`);
+      try {
+        const response = await axios.post(url, postData, { headers, timeout: 30000 });
+
+        await this.prisma.payment.update({
+          where: { id: paymentModel.id },
+          data: { InvoiceId: response.data.invoice_id },
         });
-    } catch (err) {
+
+        return {
+          status: true,
+          type: 'success',
+          code: HttpStatus.OK,
+          data: response.data,
+        };
+      } catch (error: any) {
+        if (error.response && error.response.status === 401 && retryCount < MAX_RETRIES) {
+          await this.getAuthToken();
+          return await this.createInvoice(createInvoiceDto, retryCount + 1);
+        }
+        throw new Error(`${error}`);
+      }
+    } catch (err: any) {
       if (err instanceof HttpException) {
         throw err;
       }
@@ -168,7 +159,9 @@ export class PaymentService {
     }
   }
 
-  async checkInvoice(invoiceId: string): Promise<any> {
+  async checkInvoice(invoiceId: string, retryCount: number = 0): Promise<any> {
+    const MAX_RETRIES = 2;
+
     console.log('Checking Invoice:', invoiceId);
     const postData = {
       object_type: 'INVOICE',
@@ -180,12 +173,10 @@ export class PaymentService {
     };
     const url = `${this.apiUrl}/payment/check`;
 
-
-
     const token = await this.prisma.qPayToken.findFirst(
       {
         where: {
-          id: 1, // Assuming you have a single token for the application
+          id: 1,
         },
       },
     );
@@ -197,23 +188,22 @@ export class PaymentService {
       Authorization: `Bearer ${bearerToken}`,
       'Content-Type': 'application/json',
     };
-    return axios
-      .post(url, postData, { headers })
-      .then((response) => {
-        return {
-          status: true,
-          type: 'success',
-          code: HttpStatus.OK,
-          data: response.data,
-        };
-      })
-      .catch(async (error) => {
-        if (error.response && error.response.status === 401) {
-          await this.getAuthToken();
-          return await this.checkInvoice(invoiceId);
-        }
-        throw new Error(`${error}`);
-      });
+
+    try {
+      const response = await axios.post(url, postData, { headers, timeout: 30000 });
+      return {
+        status: true,
+        type: 'success',
+        code: HttpStatus.OK,
+        data: response.data,
+      };
+    } catch (error: any) {
+      if (error.response && error.response.status === 401 && retryCount < MAX_RETRIES) {
+        await this.getAuthToken();
+        return await this.checkInvoice(invoiceId, retryCount + 1);
+      }
+      throw new Error(`${error}`);
+    }
   }
 
   async verifyInvoice(
@@ -281,9 +271,8 @@ export class PaymentService {
             await this.smsService.sendDeliveryNotification(
               delivery.pickupMobile,
               `Таны төлбөр амжилттай төлөгдлөө. Та төлбөр шалгах товчыг дарна уу.`
-              // `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`
             );
-            
+
             this.deliveryGateway.handlePayment({
             deliveryId: delivery.id,
             boardId: delivery.boardId,
@@ -310,8 +299,6 @@ export class PaymentService {
             paymentId: payment.id,
             paymentStatus: payment.status,
           });
-          
-          
 
           if (updatedPayment.count == 0) {
             throw new ResourceConflictException(
@@ -324,7 +311,7 @@ export class PaymentService {
     } else {
       throw new PaymentNotProcessedException(`Төлбөр хийгдээгүй байна.`);
     }
-  } 
+  }
 
   async checkPaymentWithInvoice(invoiceId: string): Promise<any> {
     const payment = await this.prisma.payment.findFirst({
@@ -345,8 +332,8 @@ export class PaymentService {
 
 
     if (payment.status === 'PAID') {
-      
-  
+
+
       // send gateway message to delivery service
       this.deliveryGateway.handlePayment( {
         deliveryId: delivery.id,
@@ -402,8 +389,6 @@ export class PaymentService {
               paymentId: payment.id,
               paymentStatus: payment.status,
             });
-            
-            
 
             if (updatedPayment.count == 0) {
               throw new ResourceConflictException(

@@ -354,18 +354,19 @@ export class DeliveryService {
 
 
   async generatePickupCode(): Promise<string> {
-    let code = '';
+    const maxAttempts = 50;
 
-    while(true) {
-      // genereate code 6 digits
-      code = Math.floor(100000 + Math.random() * 900000).toString();
+    for (let i = 0; i < maxAttempts; i++) {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
       const existing = await this.prisma.deliveryOrder.findUnique({
         where: { pickupCode: code },
       });
-      if (!existing) break; // ensure uniqueness
+      if (!existing) return code;
     }
-    
-    return code;
+
+    // Fallback: use timestamp-based code to guarantee uniqueness
+    const timestamp = Date.now().toString().slice(-6);
+    return timestamp;
   }
 
   async startDelivery(data: StartDeliveryDto) {
@@ -475,19 +476,35 @@ export class DeliveryService {
     }
   }
 
-  async getDeliveries(boardId?: string, status?: string) {
+  async getDeliveries(boardId?: string, status?: string, page: number = 1, limit: number = 100) {
     const where: any = {};
     if (boardId) where.boardId = boardId;
     if (status) where.status = status as any; // Cast to match DeliveryStatus
 
-    const data = await this.prisma.deliveryOrder.findMany({
-      include: { Container: true, Locker: true },
-      where,
-    });
+    const take = Math.min(limit, 500); // Cap at 500 records max
+    const skip = (page - 1) * take;
+
+    const [data, total] = await Promise.all([
+      this.prisma.deliveryOrder.findMany({
+        include: { Container: true, Locker: true },
+        where,
+        take,
+        skip,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.deliveryOrder.count({ where }),
+    ]);
+
     return {
       success: true,
       message: 'Fetched all deliveries successfully',
-      data: data
+      data,
+      pagination: {
+        total,
+        page,
+        limit: take,
+        totalPages: Math.ceil(total / take),
+      },
     };
   }
 

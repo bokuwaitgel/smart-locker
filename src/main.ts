@@ -2,10 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import express from 'express';
 
 //cors
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Limit request body size to prevent memory exhaustion
+  app.use(express.json({ limit: '5mb' }));
+  app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
   app.enableCors({
     origin: [
@@ -21,6 +26,9 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe());
+
+  // Enable graceful shutdown so Prisma $disconnect and cleanup hooks run
+  app.enableShutdownHooks();
 
   const config = new DocumentBuilder()
     .setTitle('Smart Locker API')

@@ -1,19 +1,28 @@
-import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
-import { Inject, forwardRef } from '@nestjs/common';
-import { subscribe } from 'diagnostics_channel';
-import { emit } from 'process';
-import { Server } from 'socket.io';
+import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import { Inject, forwardRef, Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaymentService } from 'src/payment/payment.service';
 
 @WebSocketGateway()
-export class DeliveryGateway {
+export class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private readonly logger = new Logger(DeliveryGateway.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => PaymentService)) private readonly paymentService: PaymentService,
   ) {}
   @WebSocketServer()
   server: Server;
+
+  handleConnection(client: Socket) {
+    this.logger.log(`Client connected: ${client.id}`);
+  }
+
+  handleDisconnect(client: Socket) {
+    this.logger.log(`Client disconnected: ${client.id}`);
+    client.removeAllListeners();
+  }
   
   // create a message sender for the delivery service
   @SubscribeMessage('sendToDeliveryService')

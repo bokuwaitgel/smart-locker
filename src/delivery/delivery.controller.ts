@@ -80,10 +80,19 @@ export class DeliveryController {
   @ApiResponse({ status: 200, description: 'List of deliveries' })
   @ApiQuery({ name: 'boardId', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   async getDeliveries(
     @Query('boardId') boardId?: string,
     @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.deliveryService.getDeliveries(boardId, status);
+    return this.deliveryService.getDeliveries(
+      boardId,
+      status,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 100,
+    );
   }
 }

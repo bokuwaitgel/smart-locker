@@ -150,8 +150,13 @@ export class SmsService {
       }
 
       this.checkRateLimit(phone);
+<<<<<<< HEAD
 
       const message = `хүргэлтийн хайрцаг таны хүргэлтийг хүлээн авлаа! \nБайршил: ${lockerLocation} \nНууц код:: ${code}`;
+=======
+    
+      const message = `хүргэлтийн хайрцаг таны хүргэлтийг хүлээн авлаа! \nБайршил: ${lockerLocation} \nНууц код: ${code}`;
+>>>>>>> 3ba01ac25d2c0de980862e2237cf55a649a802af
 
       this.logger.log(
         `Sending pickup code SMS to ${phone} for delivery ${deliveryId}`,

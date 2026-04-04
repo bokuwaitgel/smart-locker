@@ -4,7 +4,10 @@ import { Server, Socket } from 'socket.io';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaymentService } from 'src/payment/payment.service';
 
-@WebSocketGateway()
+@WebSocketGateway({
+  pingInterval: 25000,
+  pingTimeout: 10000,
+})
 export class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(DeliveryGateway.name);
 
@@ -33,47 +36,43 @@ export class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   @SubscribeMessage('PaymentCheck')
   async handlePaymentCheck(@MessageBody() data: { pickupCode: string }): Promise<void> {
-    console.log('Payment check requested for pickup code:', data.pickupCode);
+    try {
+      this.logger.log(`Payment check requested for pickup code: ${data.pickupCode}`);
 
-    // Implement payment check logic here
-    const delivery = await this.prisma.deliveryOrder.findFirst({
-      where: { pickupCode: data.pickupCode },
-    });
+      const delivery = await this.prisma.deliveryOrder.findFirst({
+        where: { pickupCode: data.pickupCode },
+      });
 
-    if (!delivery) {
-      console.log('No delivery found for pickup code:', data.pickupCode);
-      return;
-    }
-
-    // check payment status
-    const payment = await this.prisma.payment.findFirst({
-      where: { deliveryId: delivery.id },
-    });
-    
-    if (!payment) {
-      console.log('No payment found for delivery ID:', delivery.id);
-      return;
-    }
-
-    if (payment.status !== 'PAID') {
-      const invoice = payment.InvoiceId
-      if (invoice) {
-        const res = await this.paymentService.checkPaymentWithInvoice(invoice);
+      if (!delivery) {
+        this.logger.warn(`No delivery found for pickup code: ${data.pickupCode}`);
+        return;
       }
-    }
 
-    console.log('Payment status for pickup code', data.pickupCode, ':', payment.status);
+      const payment = await this.prisma.payment.findFirst({
+        where: { deliveryId: delivery.id },
+      });
 
-    if (delivery) {
+      if (!payment) {
+        this.logger.warn(`No payment found for delivery ID: ${delivery.id}`);
+        return;
+      }
+
+      if (payment.status !== 'PAID') {
+        const invoice = payment.InvoiceId;
+        if (invoice) {
+          await this.paymentService.checkPaymentWithInvoice(invoice);
+        }
+      }
+
       this.server.emit('PaymentStatus', {
         pickupCode: data.pickupCode,
         paymentStatus: payment.status,
       });
+    } catch (error) {
+      this.logger.error(`PaymentCheck failed for ${data.pickupCode}: ${error.message}`, error.stack);
     }
-
   }
 
-  //payment gateway 
   @SubscribeMessage('paymentGateway')
   async handlePayment(@MessageBody() paymentInfo: {
     paymentId: number;
@@ -81,49 +80,53 @@ export class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect
     boardId: string;
     lockerId: string;
     paymentStatus: string;
-
   }): Promise<void> {
-    console.log('Payment information received:', paymentInfo);
+    try {
+      this.logger.log(`Payment information received: ${JSON.stringify(paymentInfo)}`);
 
-    if (paymentInfo.paymentStatus === 'PAID') {
+      if (paymentInfo.paymentStatus === 'PAID') {
+        const locker = await this.prisma.locker.findUnique({
+          where: { lockerNumber: paymentInfo.lockerId },
+        });
+
+        if (!locker) {
+          this.logger.warn(`Locker not found for ID: ${paymentInfo.lockerId}`);
+          return;
+        }
+        this.server.emit(paymentInfo.boardId, {
+          action: 'unlock',
+          lockerId: paymentInfo.lockerId,
+          lockerIndex: locker.lockerIndex,
+          reason: 'Payment successful',
+        });
+      }
+    } catch (error) {
+      this.logger.error(`handlePayment failed: ${error.message}`, error.stack);
+    }
+  }
+
+  @SubscribeMessage('openLocker')
+  async handleOpenLocker(@MessageBody() data: { boardId: string; lockerId: string; reason: string }): Promise<void> {
+    try {
+      this.logger.log(`Open locker request received: ${JSON.stringify(data)}`);
+
       const locker = await this.prisma.locker.findUnique({
-        where: { lockerNumber: paymentInfo.lockerId },
+        where: { lockerNumber: data.lockerId },
       });
 
       if (!locker) {
-        console.log('Locker not found for ID:', paymentInfo.lockerId);
+        this.logger.warn(`Locker not found for ID: ${data.lockerId}`);
         return;
       }
-      this.server.emit(paymentInfo.boardId, {
+
+      this.server.emit(data.boardId, {
         action: 'unlock',
-        lockerId: paymentInfo.lockerId,
+        lockerId: data.lockerId,
         lockerIndex: locker.lockerIndex,
-        reason: 'Payment successful',
+        reason: data.reason,
       });
+    } catch (error) {
+      this.logger.error(`openLocker failed: ${error.message}`, error.stack);
     }
-
-    
-  }
-
-  //open locker door
-  @SubscribeMessage('openLocker')
-  async handleOpenLocker(@MessageBody() data: { boardId: string; lockerId: string; reason: string }): Promise<void> {
-    console.log('Open locker request received:', data);
-
-    const locker = await this.prisma.locker.findUnique({
-      where: { lockerNumber: data.lockerId },
-    });
-
-    if (!locker) {
-      console.log('Locker not found for ID:', data.lockerId);
-      return;
-    }
-
-    this.server.emit(data.boardId, {
-      action: 'unlock',
-      lockerId: data.lockerId,
-      lockerIndex: locker.lockerIndex,
-      reason: data.reason,
-    });
   }
 }

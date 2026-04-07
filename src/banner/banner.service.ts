@@ -4,13 +4,12 @@ import { AwsS3Service } from 'src/s3.service';
 
 @Injectable()
 export class BannerService {
-    constructor(private prisma: PrismaService) {} 
+    constructor(private prisma: PrismaService, private s3: AwsS3Service) {}
 
     async createBanner(type: string, file: any): Promise<any> {
-        const s3 = new AwsS3Service();
         if (type === 'image') {
             console.log('Creating image banner');
-            const imageUrl = await s3.uploadBannerImage(file);
+            const imageUrl = await this.s3.uploadBannerImage(file);
             const result = await this.prisma.banner.create({
                 data: {
                     type,
@@ -25,7 +24,7 @@ export class BannerService {
                 data:result
             }
         } else if (type === 'video') {
-            const videoUrl = await s3.uploadbannerVideo(file);
+            const videoUrl = await this.s3.uploadbannerVideo(file);
             const result = await this.prisma.banner.create({
                 data: {
                     type,

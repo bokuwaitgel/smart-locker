@@ -1,10 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import * as express from 'express';
 
-//cors
+const logger = new Logger('Bootstrap');
+
+// Catch fatal errors that would silently kill the process
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Rejection:', reason);
+});
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -16,18 +27,20 @@ async function bootstrap() {
     origin: [
       'http://localhost:3000',
       'http://localhost:3031',
-      "http://localhost:3000",
       'http://172.29.1.6:3031',
-      'http://143.110.184.5:3000', // Allow all subdomains of http:// for testing
+      'http://143.110.184.5:3000',
+      'http://68.183.82.139:3000',
+      'http://68.183.82.139:3031',
       'http://142.93.222.101:3000',
       'http://20.2.73.131:3031',
-      'null', // Allow local file access for testing
-      'file://', // Allow file:// protocol for local HTML files
+      'null',
+      'file://',
     ],
     credentials: true,
   });
 
   app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   // Enable graceful shutdown so Prisma $disconnect and cleanup hooks run
   app.enableShutdownHooks();
@@ -41,6 +54,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(3030);
+  const port = process.env.PORT || 3030;
+  await app.listen(port);
+  logger.log(`Server running on port ${port}`);
 }
 bootstrap();

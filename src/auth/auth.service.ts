@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -7,6 +7,8 @@ import { RegisterDto, UserProfileDto } from './user.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -34,11 +36,14 @@ export class AuthService {
 
   // Login
   async login(email: string, password: string) {
+    this.logger.log(`Login attempt for: ${email}`);
+
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (!user) {
+      this.logger.warn(`Login failed - user not found: ${email}`);
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -47,10 +52,12 @@ export class AuthService {
       user.password,
     );
     if (!isPasswordValid) {
+      this.logger.warn(`Login failed - invalid password: ${email}`);
       throw new UnauthorizedException('Invalid email or password');
     }
 
     const token = this.generateToken(user);
+    this.logger.log(`Login successful: ${email} (role: ${user.role})`);
 
     return {
       success: true,
@@ -63,6 +70,7 @@ export class AuthService {
   // Register new user
   async register(registerDto: RegisterDto) {
     const { email, password, name, phoneNumber } = registerDto;
+    this.logger.log(`Registration attempt: ${email}`);
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -70,6 +78,7 @@ export class AuthService {
     });
 
     if (existingUser) {
+      this.logger.warn(`Registration failed - email exists: ${email}`);
       return {
         success: false,
         message: 'User with this email already exists',
@@ -83,6 +92,7 @@ export class AuthService {
       });
 
       if (existingPhone) {
+        this.logger.warn(`Registration failed - phone exists: ${phoneNumber}`);
         return {
           success: false,
           message: 'Phone number already in use',
@@ -105,6 +115,7 @@ export class AuthService {
     });
 
     const token = this.generateToken(user);
+    this.logger.log(`User registered successfully: ${email} (id: ${user.id})`);
 
     return {
       success: true,
@@ -116,11 +127,14 @@ export class AuthService {
 
   // Create superuser (admin)
   async createSuperUser(email: string, password: string) {
+    this.logger.log(`Creating superuser: ${email}`);
+
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
+      this.logger.warn(`Superuser already exists: ${email}`);
       return {
         success: false,
         message: 'Superuser already exists',
@@ -137,6 +151,8 @@ export class AuthService {
         name: 'Super Admin',
       },
     });
+
+    this.logger.log(`Superuser created: ${email} (id: ${user.id})`);
 
     return {
       success: true,

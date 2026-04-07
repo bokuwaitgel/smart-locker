@@ -17,11 +17,14 @@ process.on('unhandledRejection', (reason) => {
 });
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  logger.log('⏳ Starting Smart Locker API...');
 
-  // Limit request body size to prevent memory exhaustion
+  const app = await NestFactory.create(AppModule);
+  logger.log('✅ NestJS application created');
+
   app.use(express.json({ limit: '5mb' }));
   app.use(express.urlencoded({ limit: '5mb', extended: true }));
+  logger.log('✅ Body parser configured (5mb limit)');
 
   app.enableCors({
     origin: [
@@ -40,12 +43,14 @@ async function bootstrap() {
     ],
     credentials: true,
   });
+  logger.log('✅ CORS enabled');
 
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalFilters(new GlobalExceptionFilter());
+  logger.log('✅ Global pipes & filters registered');
 
-  // Enable graceful shutdown so Prisma $disconnect and cleanup hooks run
   app.enableShutdownHooks();
+  logger.log('✅ Graceful shutdown hooks enabled');
 
   const config = new DocumentBuilder()
     .setTitle('Smart Locker API')
@@ -55,9 +60,13 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+  logger.log('✅ Swagger docs configured');
 
   const port = process.env.PORT || 3030;
   await app.listen(port, '0.0.0.0');
-  logger.log(`Server running on port ${port}`);
+  logger.log('=========================================');
+  logger.log(`🚀 Server running on http://0.0.0.0:${port}`);
+  logger.log(`📖 Swagger docs at http://0.0.0.0:${port}/api`);
+  logger.log('=========================================');
 }
 bootstrap();

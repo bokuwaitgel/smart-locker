@@ -30,7 +30,7 @@ export class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect
   // create a message sender for the delivery service
   @SubscribeMessage('sendToDeliveryService')
   handleMessage(@MessageBody() message: string): void {
-    console.log('Message to delivery service:', message);
+    this.logger.log(`Message to delivery service: ${message}`);
     this.server.emit('sendToDeliveryService', message + ' from backend');
   }
 

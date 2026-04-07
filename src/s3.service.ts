@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { S3 } from 'aws-sdk';
 
 @Injectable()
 export class AwsS3Service {
+  private readonly logger = new Logger(AwsS3Service.name);
   private s3: S3;
   constructor() {
     this.s3 = new S3({
@@ -14,6 +15,7 @@ export class AwsS3Service {
     });
   }
   async uploadFile(file: Express.Multer.File): Promise<string> {
+    this.logger.log(`Uploading file: ${file.originalname}`);
     const fileExtension = file.originalname.split('.').pop();
     const key = 'images/' + Date.now() + '.' + fileExtension;
 
@@ -31,9 +33,10 @@ export class AwsS3Service {
     };
     try {
       let result = await this.s3.upload(params).promise();
+      this.logger.log(`File uploaded: ${result.Location}`);
       return result.Location;
     } catch (e) {
-      console.log(e);
+      this.logger.error(`File upload failed: ${e.message}`);
       throw new Error('File upload failed');
     }
   }
@@ -56,9 +59,10 @@ export class AwsS3Service {
     };
     try {
       let result = await this.s3.upload(params).promise();
+      this.logger.log(`Banner image uploaded: ${result.Location}`);
       return result.Location;
     } catch (e) {
-      console.log(e);
+      this.logger.error(`Banner image upload failed: ${e.message}`);
       throw new Error('File upload failed');
     }
   }
@@ -82,9 +86,10 @@ export class AwsS3Service {
     };
     try {
       let result = await this.s3.upload(params).promise();
+      this.logger.log(`Banner video uploaded: ${result.Location}`);
       return result.Location;
     } catch (e) {
-      console.log(e);
+      this.logger.error(`Banner video upload failed: ${e.message}`);
       throw new Error('File upload failed');
     }
   }

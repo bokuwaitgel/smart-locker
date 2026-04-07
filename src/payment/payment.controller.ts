@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Logger } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto, CreateInvoiceDto, CheckInvoiceDto } from './dto';
@@ -7,6 +7,8 @@ import { CreatePaymentDto, CreateInvoiceDto, CheckInvoiceDto } from './dto';
 
 @Controller('payments')
 export class PaymentController {
+  private readonly logger = new Logger(PaymentController.name);
+
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post('create')
@@ -19,7 +21,7 @@ export class PaymentController {
       @Param('paymentId') paymentId: string,
       @Param('deliveryId') deliveryId: string,
   ) {
-      console.log('Verifying payment:', paymentId, 'for deliveryId:', deliveryId);
+      this.logger.log(`Verifying payment: ${paymentId} for deliveryId: ${deliveryId}`);
       return await this.paymentService.verifyInvoice(paymentId, deliveryId);
   }
 
@@ -27,7 +29,7 @@ export class PaymentController {
   public async checkPaymentWithInvoice(
       @Param('invoiceId') invoiceId: string,
   ): Promise<any> {
-      console.log('Checking payment with invoice:', invoiceId);
+      this.logger.log(`Checking payment with invoice: ${invoiceId}`);
       return await this.paymentService.checkPaymentWithInvoice(invoiceId);
   }
 }

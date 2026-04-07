@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus, HttpException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, HttpStatus, HttpException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from 'src/sms/sms.service';
 import { CreatePaymentDto, CreateInvoiceDto, CheckInvoiceDto } from './dto';
@@ -12,6 +12,8 @@ import { DeliveryGateway } from 'src/delivery/delivery.gateway';
 
 @Injectable()
 export class PaymentService {
+    private readonly logger = new Logger(PaymentService.name);
+
     constructor(
         private prisma: PrismaService,
         private smsService: SmsService,
@@ -21,6 +23,7 @@ export class PaymentService {
   private authToken: string | null = null;
 
    async getAuthToken(): Promise<any> {
+    this.logger.log('Requesting QPay auth token');
     try {
       const requestConfig = {
         url: `${this.apiUrl}/auth/token`,
@@ -70,6 +73,8 @@ export class PaymentService {
         });
       }
 
+      this.logger.log('QPay auth token obtained successfully');
+
       return {
         status: true,
         type: 'success',
@@ -77,7 +82,7 @@ export class PaymentService {
         data: res,
       };
     } catch (error) {
-      console.log(error);
+      this.logger.error(`Failed to get QPay auth token: ${error.message}`);
       return {
         status: false,
         type: 'error',
@@ -91,6 +96,7 @@ export class PaymentService {
     retryCount: number = 0,
   ): Promise<any> {
     const MAX_RETRIES = 2;
+    this.logger.log(`Creating invoice: deliveryId=${createInvoiceDto.deliveryId}, amount=${createInvoiceDto.amount}`);
 
     try {
       const paymentModel = await this.prisma.payment.create({
@@ -162,7 +168,7 @@ export class PaymentService {
   async checkInvoice(invoiceId: string, retryCount: number = 0): Promise<any> {
     const MAX_RETRIES = 2;
 
-    console.log('Checking Invoice:', invoiceId);
+    this.logger.log(`Checking invoice: ${invoiceId}`);
     const postData = {
       object_type: 'INVOICE',
       object_id: invoiceId,
@@ -210,6 +216,7 @@ export class PaymentService {
     paymentId: string,
     deliveryId: string,
   ): Promise<any> {
+    this.logger.log(`Verifying invoice: paymentId=${paymentId}, deliveryId=${deliveryId}`);
     const payment = await this.prisma.payment.findFirst({
       where: {
         id: Number(paymentId),
@@ -267,7 +274,7 @@ export class PaymentService {
           });
           if (updatedPayment.count > 0) {
             // Notify user about successful payment
-            console.log('Sending notification to user for successful payment');
+            this.logger.log(`Payment verified - sending notification for delivery ${deliveryId}`);
             await this.smsService.sendDeliveryNotification(
               delivery.pickupMobile,
               `Таны төлбөр амжилттай төлөгдлөө. Та төлбөр шалгах товчыг дарна уу.`
@@ -365,7 +372,7 @@ export class PaymentService {
             });
             if (updatedPayment.count > 0) {
               // Notify user about successful payment
-              console.log('Sending notification to user for successful payment');
+              this.logger.log(`Payment verified - sending notification for delivery ${deliveryId}`);
               await this.smsService.sendDeliveryNotification(
                 delivery.pickupMobile,
                 `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`

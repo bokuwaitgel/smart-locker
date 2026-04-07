@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -17,6 +18,8 @@ import { DeliveryGateway } from 'src/delivery/delivery.gateway';
 
 @Injectable()
 export class LockerService {
+  private readonly logger = new Logger(LockerService.name);
+
   constructor(
     private prisma: PrismaService,
     private deliveryGateway: DeliveryGateway,
@@ -67,6 +70,8 @@ export class LockerService {
           Container: true,
         },
       });
+
+      this.logger.log(`Locker created: ${data.lockerNumber} in board ${data.boardId}`);
 
       return {
         success: true,
@@ -233,12 +238,15 @@ export class LockerService {
         },
       });
 
+      this.logger.log(`Locker status updated: id=${id} -> ${status}`);
+
       return {
         success: true,
         message: `Locker status updated to ${status}`,
         data: this.formatLockerResponse(result),
       };
     } catch (error) {
+      this.logger.error(`Failed to update locker status id=${id}: ${error.message}`);
       throw new BadRequestException('Failed to update locker status');
     }
   }
@@ -265,6 +273,8 @@ export class LockerService {
           status: data.status,
         },
       });
+
+      this.logger.log(`Bulk updated ${result.count} lockers -> ${data.status}`);
 
       return {
         success: true,
@@ -307,6 +317,7 @@ export class LockerService {
       }
 
       await this.prisma.locker.delete({ where: { id } });
+      this.logger.log(`Locker deleted: id=${id}`);
 
       return {
         success: true,
@@ -468,9 +479,8 @@ export class LockerService {
         throw new NotFoundException('Locker not found');
       }
 
-      // Here you would typically integrate with the hardware API to unlock the locker.
-      // For this example, we'll just simulate the action.
-      // add websocket event to notify the locker board to open the locker
+        this.logger.log(`Opening locker ${lockerNumber} on board ${boardId}`);
+
       this.deliveryGateway.server.emit(boardId, {
         action: 'unlock',
         lockerId: lockerNumber,
@@ -478,7 +488,7 @@ export class LockerService {
         reason: 'Manual open request',
       });
 
-
+      this.logger.log(`Unlock event sent for locker ${lockerNumber} on board ${boardId}`);
 
       return {
         success: true,

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -15,6 +16,8 @@ import { ContainerStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class ContainerService {
+  private readonly logger = new Logger(ContainerService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async createContainer(
@@ -53,12 +56,15 @@ export class ContainerService {
         },
       });
 
+      this.logger.log(`Container created: ${data.boardId} (id: ${result.id})`);
+
       return {
         success: true,
         message: 'Container created successfully',
         data: this.formatContainerResponse(result),
       };
     } catch (error) {
+      this.logger.error(`Failed to create container ${data.boardId}: ${error.message}`);
       throw new BadRequestException('Failed to create container');
     }
   }
@@ -178,6 +184,8 @@ export class ContainerService {
         },
       });
 
+      this.logger.log(`Container updated: id=${id}`);
+
       return {
         success: true,
         message: 'Container updated successfully',
@@ -190,6 +198,7 @@ export class ContainerService {
       ) {
         throw error;
       }
+      this.logger.error(`Failed to update container id=${id}: ${error.message}`);
       throw new BadRequestException('Failed to update container');
     }
   }
@@ -230,6 +239,7 @@ export class ContainerService {
       }
 
       await this.prisma.container.delete({ where: { id } });
+      this.logger.log(`Container deleted: id=${id}`);
 
       return {
         success: true,
@@ -302,12 +312,15 @@ export class ContainerService {
         },
       });
 
+      this.logger.log(`Container status updated: id=${id} -> ${status}`);
+
       return {
         success: true,
         message: `Container status updated to ${status}`,
         data: this.formatContainerResponse(result),
       };
     } catch (error) {
+      this.logger.error(`Failed to update container status id=${id}: ${error.message}`);
       throw new BadRequestException('Failed to update container status');
     }
   }

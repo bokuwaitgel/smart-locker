@@ -32,6 +32,7 @@ async function bootstrap() {
       'http://68.183.82.139:3000',
       'http://68.183.82.139:3031',
       'http://142.93.222.101:3000',
+      'http://168.144.34.171:3000',
       'http://20.2.73.131:3031',
       'null',
       'file://',
@@ -54,8 +55,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  const port = process.env.PORT || 3030;
-  await app.listen(port);
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0');
   logger.log(`Server running on port ${port}`);
 }
 bootstrap();

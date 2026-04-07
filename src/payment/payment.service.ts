@@ -372,7 +372,7 @@ export class PaymentService {
             });
             if (updatedPayment.count > 0) {
               // Notify user about successful payment
-              this.logger.log(`Payment verified - sending notification for delivery ${deliveryId}`);
+              this.logger.log(`Payment verified - sending notification for delivery ${delivery.id}`);
               await this.smsService.sendDeliveryNotification(
                 delivery.pickupMobile,
                 `Таны захиалга амжилттай төлөгдлөө. Код: ${delivery.pickupCode}`

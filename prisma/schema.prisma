@@ -72,6 +72,8 @@ model Payment {
   deliveryId  Int
   delivery    DeliveryOrder @relation(fields: [deliveryId], references: [id])
   InvoiceId   String?       @unique
+  QpayData    Json?
+  expiresAt   DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   QPayToken   QPayToken?    @relation(fields: [qPayTokenId], references: [id])

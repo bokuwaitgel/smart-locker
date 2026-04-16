@@ -96,14 +96,44 @@ export class PaymentService {
     retryCount: number = 0,
   ): Promise<any> {
     const MAX_RETRIES = 2;
+    const EXPIRATION_MS = 10 * 60 * 1000;
     this.logger.log(`Creating invoice: deliveryId=${createInvoiceDto.deliveryId}, amount=${createInvoiceDto.amount}`);
 
     try {
+      const now = new Date();
+
+      const existing = await this.prisma.payment.findFirst({
+        where: {
+          deliveryId: createInvoiceDto.deliveryId,
+          status: 'UNPAID',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (existing && existing.expiresAt && existing.expiresAt > now && existing.QpayData) {
+        this.logger.log(`Reusing non-expired payment ${existing.id} for delivery ${createInvoiceDto.deliveryId}`);
+        return {
+          status: true,
+          type: 'success',
+          code: HttpStatus.OK,
+          data: existing.QpayData,
+        };
+      }
+
+      if (existing && existing.expiresAt && existing.expiresAt <= now) {
+        this.logger.log(`Expiring payment ${existing.id} for delivery ${createInvoiceDto.deliveryId}`);
+        await this.prisma.payment.update({
+          where: { id: existing.id },
+          data: { status: 'FAILED' },
+        });
+      }
+
       const paymentModel = await this.prisma.payment.create({
         data: {
           amount: createInvoiceDto.amount,
           deliveryId: createInvoiceDto.deliveryId,
           status: 'UNPAID',
+          expiresAt: new Date(now.getTime() + EXPIRATION_MS),
         },
       });
 
@@ -141,7 +171,10 @@ export class PaymentService {
 
         await this.prisma.payment.update({
           where: { id: paymentModel.id },
-          data: { InvoiceId: response.data.invoice_id },
+          data: {
+            InvoiceId: response.data.invoice_id,
+            QpayData: response.data,
+          },
         });
 
         return {

@@ -31,8 +31,8 @@ export class DeliveryService {
   private async calculateDeliveryPrice(delivery: any): Promise<number> {
     try {
       // Base price for delivery
-      // let basePrice = 3500; // Base price in MNT
-      let basePrice = 100
+      let basePrice = 3500; // Base price in MNT
+      // let basePrice = 100
       // 3500 per day after first day
       const now = new Date();
       const deliveredAt = delivery.deliveredAt || new Date();

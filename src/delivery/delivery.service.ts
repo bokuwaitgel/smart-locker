@@ -307,12 +307,13 @@ export class DeliveryService {
           statusCode: HttpStatus.NOT_FOUND,
         };
       }
-
-      const payment = await this.prisma.payment.findFirst({
+      // get all payments and check from latest if one is payed then its payed
+      const payments = await this.prisma.payment.findMany({
         where: { deliveryId: delivery.id },
+        orderBy: { createdAt: 'desc' }
       });
 
-      if (!payment) {
+      if (payments.length === 0) {
         return {
           success: false,
           type: 'error',
@@ -320,16 +321,20 @@ export class DeliveryService {
           statusCode: HttpStatus.NOT_FOUND,
         };
       }
-  
-      const invoice = payment.InvoiceId
-      if (invoice) {
-        const res = await this.paymentService.checkPaymentWithInvoice(invoice);
+
+      for (const payment of payments) {
+        if (payment.status === 'PAID') break;
+        if (!payment.InvoiceId) continue;
+        await this.paymentService.checkPaymentWithInvoice(payment.InvoiceId);
       }
-      
+
+      const updatedDelivery = await this.prisma.deliveryOrder.findUnique({
+        where: { id: delivery.id },
+      });
+
       const locker = await this.prisma.locker.findUnique({
         where: { lockerNumber: delivery.lockerId },
       });
-
 
       return {
         success: true,
@@ -337,9 +342,9 @@ export class DeliveryService {
         data: {
           deliveryId: delivery.id,
           pickupCode: data.pickupCode,
-          lockerIndex : locker?.lockerIndex,
-          paymentStatus: delivery.paymentStatus,
-          status: delivery.status,
+          lockerIndex: locker?.lockerIndex,
+          paymentStatus: updatedDelivery?.paymentStatus ?? delivery.paymentStatus,
+          status: updatedDelivery?.status ?? delivery.status,
         },
         statusCode: HttpStatus.OK,
       };
